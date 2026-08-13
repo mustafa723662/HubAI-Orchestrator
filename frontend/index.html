@@ -1,0 +1,362 @@
+<!DOCTYPE html>
+<html lang="tr" class="dark">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>HubAI Orchestrator</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+<script>
+  tailwind.config = {
+    darkMode: "class",
+    theme: {
+      extend: {
+        fontFamily: {
+          sans: ["Inter", "sans-serif"],
+          mono: ["JetBrains Mono", "monospace"],
+        },
+        colors: {
+          base: {
+            950: "#05060a",
+            900: "#0a0d14",
+            800: "#12151f",
+            700: "#1b1f2b",
+            600: "#262b3a",
+          },
+        },
+        keyframes: {
+          fadeUp: {
+            "0%": { opacity: 0, transform: "translateY(10px)" },
+            "100%": { opacity: 1, transform: "translateY(0)" },
+          },
+          pulseGlow: {
+            "0%, 100%": { opacity: 0.5 },
+            "50%": { opacity: 1 },
+          },
+        },
+        animation: {
+          fadeUp: "fadeUp 0.45s ease-out both",
+          pulseGlow: "pulseGlow 2s ease-in-out infinite",
+        },
+      },
+    },
+  };
+</script>
+<style>
+  body {
+    background-color: #05060a;
+    background-image:
+      radial-gradient(circle at 15% 10%, rgba(99, 102, 241, 0.12), transparent 40%),
+      radial-gradient(circle at 85% 25%, rgba(16, 185, 129, 0.10), transparent 40%),
+      linear-gradient(rgba(255,255,255,0.035) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(255,255,255,0.035) 1px, transparent 1px);
+    background-size: auto, auto, 42px 42px, 42px 42px;
+  }
+  ::-webkit-scrollbar { width: 10px; }
+  ::-webkit-scrollbar-track { background: #0a0d14; }
+  ::-webkit-scrollbar-thumb { background: #262b3a; border-radius: 999px; }
+  ::-webkit-scrollbar-thumb:hover { background: #333a4d; }
+  textarea:focus { box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.25); }
+  .spinner {
+    border: 2.5px solid rgba(255,255,255,0.15);
+    border-top-color: #fff;
+    border-radius: 50%;
+    animation: spin 0.7s linear infinite;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+</style>
+</head>
+<body class="min-h-screen text-slate-200 font-sans antialiased">
+
+  <div class="min-h-screen flex flex-col items-center px-4 py-10 sm:py-16">
+
+    <!-- Header -->
+    <header class="w-full max-w-3xl text-center mb-10 animate-fadeUp">
+      <div class="inline-flex items-center gap-2 mb-4 px-3 py-1 rounded-full border border-base-600 bg-base-800/60 text-xs font-mono text-indigo-300">
+        <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulseGlow"></span>
+        AI ORCHESTRATION ENGINE
+      </div>
+      <h1 class="text-4xl sm:text-5xl font-extrabold tracking-tight text-white">
+        Hub<span class="bg-gradient-to-r from-indigo-400 via-violet-400 to-emerald-400 bg-clip-text text-transparent">AI</span>
+        <span class="block sm:inline text-2xl sm:text-3xl font-semibold text-slate-400 mt-1 sm:mt-0"> Orchestrator</span>
+      </h1>
+      <p class="mt-3 text-slate-400 max-w-xl mx-auto text-sm sm:text-base">
+        Tek bir prompt yazın; sistem isteğinizi analiz edip
+        <span class="text-slate-300">OpenAI, Claude, Gemini, Midjourney veya DALL·E</span>
+        arasından en uygun modeli seçsin.
+      </p>
+    </header>
+
+    <!-- Main card -->
+    <main class="w-full max-w-3xl">
+      <div class="rounded-2xl border border-base-600 bg-base-900/70 backdrop-blur-xl shadow-2xl shadow-black/40 p-5 sm:p-7 animate-fadeUp">
+
+        <label for="prompt" class="block text-sm font-medium text-slate-300 mb-2">
+          Prompt'unuz
+        </label>
+        <textarea
+          id="prompt"
+          rows="5"
+          placeholder="Örn: Yağmurlu bir gece Tokyo sokaklarını çizen, neon ışıklı, sinematik bir görsel istiyorum..."
+          class="w-full resize-none rounded-xl bg-base-950 border border-base-600 text-slate-100 placeholder-slate-600
+                 px-4 py-3 text-sm sm:text-base outline-none transition-shadow duration-200 font-mono"
+        ></textarea>
+
+        <div class="mt-4 flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
+          <button
+            id="routeBtn"
+            class="group relative flex-1 inline-flex items-center justify-center gap-2 rounded-xl
+                   bg-gradient-to-r from-indigo-500 to-violet-500 hover:from-indigo-400 hover:to-violet-400
+                   text-white font-semibold py-3 px-6 text-sm sm:text-base transition-all duration-200
+                   shadow-lg shadow-indigo-500/20 disabled:opacity-60 disabled:cursor-not-allowed"
+          >
+            <span id="btnSpinner" class="spinner w-4 h-4 hidden"></span>
+            <svg id="btnIcon" class="w-4 h-4 transition-transform group-hover:translate-x-0.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M13 7l5 5m0 0l-5 5m5-5H6" />
+            </svg>
+            <span id="btnLabel">Yönlendir</span>
+          </button>
+          <button
+            id="clearBtn"
+            class="rounded-xl border border-base-600 hover:border-base-500 text-slate-400 hover:text-slate-200
+                   font-medium py-3 px-5 text-sm transition-colors"
+          >
+            Temizle
+          </button>
+        </div>
+
+        <p class="mt-3 text-xs text-slate-600 font-mono">
+          POST <span class="text-slate-500">/api/v1/route</span> → <span id="endpointLabel" class="text-slate-500"></span>
+        </p>
+      </div>
+
+      <!-- Error box -->
+      <div id="errorBox" class="hidden mt-5 rounded-xl border border-red-500/30 bg-red-500/10 px-5 py-4 text-red-300 text-sm animate-fadeUp">
+        <div class="flex items-start gap-3">
+          <svg class="w-5 h-5 shrink-0 mt-0.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m9-.75a9 9 0 11-18 0 9 9 0 0118 0zm-9 3.75h.008v.008H12v-.008z" />
+          </svg>
+          <div>
+            <p class="font-semibold text-red-200">İstek başarısız oldu</p>
+            <p id="errorMessage" class="mt-1 text-red-300/90 font-mono text-xs break-words"></p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Result card -->
+      <section id="resultCard" class="hidden mt-5 rounded-2xl border border-base-600 bg-base-900/70 backdrop-blur-xl shadow-2xl shadow-black/40 p-5 sm:p-7 animate-fadeUp">
+
+        <div class="flex flex-wrap items-center justify-between gap-3 mb-5">
+          <span class="text-xs uppercase tracking-wider text-slate-500 font-mono">Seçilen Model</span>
+          <span id="providerBadge" class="inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-sm font-semibold"></span>
+        </div>
+
+        <div class="space-y-5">
+          <div>
+            <div class="flex items-center justify-between mb-1.5">
+              <h3 class="text-sm font-semibold text-slate-300">Optimize Edilmiş Prompt</h3>
+              <button id="copyBtn" class="text-xs text-slate-500 hover:text-indigo-300 transition-colors font-mono">Kopyala</button>
+            </div>
+            <p id="refinedPrompt" class="rounded-xl bg-base-950 border border-base-700 px-4 py-3 text-slate-200 text-sm leading-relaxed font-mono whitespace-pre-wrap"></p>
+          </div>
+
+          <div>
+            <h3 class="text-sm font-semibold text-slate-300 mb-1.5">Seçim Gerekçesi</h3>
+            <p id="reasoning" class="rounded-xl bg-base-950 border border-base-700 px-4 py-3 text-slate-400 text-sm leading-relaxed"></p>
+          </div>
+
+          <div id="originalPromptWrap" class="hidden">
+            <h3 class="text-sm font-semibold text-slate-500 mb-1.5">Orijinal Prompt</h3>
+            <p id="originalPrompt" class="rounded-xl bg-base-950/60 border border-base-700/60 px-4 py-3 text-slate-500 text-sm leading-relaxed"></p>
+          </div>
+        </div>
+      </section>
+
+      <!-- Empty state -->
+      <div id="emptyState" class="mt-5 rounded-2xl border border-dashed border-base-700 px-6 py-10 text-center animate-fadeUp">
+        <div class="w-12 h-12 mx-auto mb-3 rounded-full bg-base-800 border border-base-600 flex items-center justify-center">
+          <svg class="w-5 h-5 text-slate-500" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09z" />
+          </svg>
+        </div>
+        <p class="text-sm text-slate-500">Sonuçlar burada görünecek. Yukarıya bir prompt yazıp <span class="text-slate-400">Yönlendir</span>'e basın.</p>
+      </div>
+
+      <footer class="mt-10 text-center text-xs text-slate-700 font-mono">
+        HubAI Orchestrator · FastAPI + Gemini Flash routing
+      </footer>
+    </main>
+  </div>
+
+<script>
+  // ---- Config ----------------------------------------------------------
+  const API_BASE = "http://127.0.0.1:9999";
+  const ROUTE_ENDPOINT = `${API_BASE}/api/v1/route`;
+
+  // ---- Provider styling --------------------------------------------------
+  const PROVIDER_META = {
+    openai:     { label: "OpenAI",     emoji: "🧠", classes: "bg-emerald-500/10 text-emerald-300 border-emerald-500/30" },
+    claude:     { label: "Claude",     emoji: "📜", classes: "bg-orange-500/10 text-orange-300 border-orange-500/30" },
+    gemini:     { label: "Gemini",     emoji: "✨", classes: "bg-blue-500/10 text-blue-300 border-blue-500/30" },
+    midjourney: { label: "Midjourney", emoji: "🎨", classes: "bg-fuchsia-500/10 text-fuchsia-300 border-fuchsia-500/30" },
+    dalle:      { label: "DALL·E",     emoji: "🖼️", classes: "bg-cyan-500/10 text-cyan-300 border-cyan-500/30" },
+  };
+
+  // ---- DOM refs ----------------------------------------------------------
+  const promptEl = document.getElementById("prompt");
+  const routeBtn = document.getElementById("routeBtn");
+  const clearBtn = document.getElementById("clearBtn");
+  const btnSpinner = document.getElementById("btnSpinner");
+  const btnIcon = document.getElementById("btnIcon");
+  const btnLabel = document.getElementById("btnLabel");
+  const errorBox = document.getElementById("errorBox");
+  const errorMessage = document.getElementById("errorMessage");
+  const resultCard = document.getElementById("resultCard");
+  const emptyState = document.getElementById("emptyState");
+  const providerBadge = document.getElementById("providerBadge");
+  const refinedPromptEl = document.getElementById("refinedPrompt");
+  const reasoningEl = document.getElementById("reasoning");
+  const originalPromptWrap = document.getElementById("originalPromptWrap");
+  const originalPromptEl = document.getElementById("originalPrompt");
+  const copyBtn = document.getElementById("copyBtn");
+  const endpointLabel = document.getElementById("endpointLabel");
+
+  endpointLabel.textContent = ROUTE_ENDPOINT;
+
+  // ---- Helpers -------------------------------------------------------------
+  function setLoading(isLoading) {
+    routeBtn.disabled = isLoading;
+    btnSpinner.classList.toggle("hidden", !isLoading);
+    btnIcon.classList.toggle("hidden", isLoading);
+    btnLabel.textContent = isLoading ? "Yönlendiriliyor..." : "Yönlendir";
+  }
+
+  function hideAllPanels() {
+    errorBox.classList.add("hidden");
+    resultCard.classList.add("hidden");
+    emptyState.classList.add("hidden");
+  }
+
+  function showError(message) {
+    hideAllPanels();
+    errorMessage.textContent = message;
+    errorBox.classList.remove("hidden");
+  }
+
+  function showEmpty() {
+    hideAllPanels();
+    emptyState.classList.remove("hidden");
+  }
+
+  // Backend'in gerçek yanıtı düz bir obje: {provider, refined_prompt, reasoning, original_prompt}.
+  // Olur da ileride {"status": "...", "data": {...}} gibi bir sarmalayıcıya geçilirse
+  // diye burada ikisini de destekliyoruz.
+  function normalizeResponse(json) {
+    const data = json && typeof json === "object" && "data" in json ? json.data : json;
+    if (!data || typeof data !== "object") return null;
+    const { provider, refined_prompt, reasoning, original_prompt } = data;
+    if (!provider || !refined_prompt) return null;
+    return { provider, refined_prompt, reasoning: reasoning ?? "", original_prompt };
+  }
+
+  function showResult(result) {
+    hideAllPanels();
+
+    const meta = PROVIDER_META[result.provider] ?? {
+      label: result.provider,
+      emoji: "🤖",
+      classes: "bg-slate-500/10 text-slate-300 border-slate-500/30",
+    };
+
+    providerBadge.className = `inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-sm font-semibold ${meta.classes}`;
+    providerBadge.innerHTML = `<span>${meta.emoji}</span><span>${meta.label}</span>`;
+
+    refinedPromptEl.textContent = result.refined_prompt;
+    reasoningEl.textContent = result.reasoning || "—";
+
+    if (result.original_prompt) {
+      originalPromptEl.textContent = result.original_prompt;
+      originalPromptWrap.classList.remove("hidden");
+    } else {
+      originalPromptWrap.classList.add("hidden");
+    }
+
+    resultCard.classList.remove("hidden");
+  }
+
+  async function routePrompt() {
+    const prompt = promptEl.value.trim();
+    if (!prompt) {
+      showError("Lütfen önce bir prompt yazın.");
+      promptEl.focus();
+      return;
+    }
+
+    setLoading(true);
+    hideAllPanels();
+
+    try {
+      const res = await fetch(ROUTE_ENDPOINT, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ prompt }),
+      });
+
+      let json;
+      try {
+        json = await res.json();
+      } catch {
+        json = null;
+      }
+
+      if (!res.ok) {
+        const detail = json?.detail || json?.message || `HTTP ${res.status}`;
+        throw new Error(typeof detail === "string" ? detail : JSON.stringify(detail));
+      }
+
+      const result = normalizeResponse(json);
+      if (!result) {
+        throw new Error("Sunucudan beklenmeyen bir yanıt formatı geldi.");
+      }
+
+      showResult(result);
+    } catch (err) {
+      const isNetworkError = err instanceof TypeError;
+      showError(
+        isNetworkError
+          ? `Sunucuya ulaşılamadı. Backend'in ${API_BASE} adresinde çalıştığından ve CORS'un izin verdiğinden emin olun.`
+          : err.message
+      );
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  copyBtn.addEventListener("click", async () => {
+    try {
+      await navigator.clipboard.writeText(refinedPromptEl.textContent);
+      const original = copyBtn.textContent;
+      copyBtn.textContent = "Kopyalandı ✓";
+      setTimeout(() => (copyBtn.textContent = original), 1500);
+    } catch {
+      /* clipboard API unavailable — silently ignore */
+    }
+  });
+
+  clearBtn.addEventListener("click", () => {
+    promptEl.value = "";
+    showEmpty();
+    promptEl.focus();
+  });
+
+  routeBtn.addEventListener("click", routePrompt);
+  promptEl.addEventListener("keydown", (e) => {
+    if ((e.ctrlKey || e.metaKey) && e.key === "Enter") routePrompt();
+  });
+
+  showEmpty();
+</script>
+</body>
+</html>
