@@ -85,7 +85,7 @@
       <p class="mt-3 text-slate-400 max-w-xl mx-auto text-sm sm:text-base">
         Tek bir prompt yazın; sistem isteğinizi analiz edip
         <span class="text-slate-300">OpenAI, Claude, Gemini, Midjourney veya DALL·E</span>
-        arasından en uygun modeli seçsin.
+        arasından en uygun modeli seçsin, sonra o modeli gerçekten çalıştırıp yanıtını göstersin.
       </p>
     </header>
 
@@ -116,7 +116,7 @@
             <svg id="btnIcon" class="w-4 h-4 transition-transform group-hover:translate-x-0.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" d="M13 7l5 5m0 0l-5 5m5-5H6" />
             </svg>
-            <span id="btnLabel">Yönlendir</span>
+            <span id="btnLabel">Çalıştır</span>
           </button>
           <button
             id="clearBtn"
@@ -128,7 +128,7 @@
         </div>
 
         <p class="mt-3 text-xs text-slate-600 font-mono">
-          POST <span class="text-slate-500">/api/v1/route</span> → <span id="endpointLabel" class="text-slate-500"></span>
+          POST <span class="text-slate-500">/api/v1/execute</span> → <span id="endpointLabel" class="text-slate-500"></span>
         </p>
       </div>
 
@@ -167,6 +167,24 @@
             <p id="reasoning" class="rounded-xl bg-base-950 border border-base-700 px-4 py-3 text-slate-400 text-sm leading-relaxed"></p>
           </div>
 
+          <div>
+            <div class="flex items-center justify-between mb-1.5">
+              <h3 class="text-sm font-semibold text-slate-300">Model Çıktısı</h3>
+              <span id="outputStatusTag" class="hidden text-xs font-mono px-2 py-0.5 rounded-full border"></span>
+            </div>
+
+            <!-- Başarılı metin çıktısı -->
+            <p id="outputText" class="hidden rounded-xl bg-base-950 border border-base-700 px-4 py-3 text-slate-200 text-sm leading-relaxed whitespace-pre-wrap"></p>
+
+            <!-- Başarılı görsel çıktısı (DALL-E) -->
+            <div id="outputImageWrap" class="hidden rounded-xl overflow-hidden border border-base-700 bg-base-950">
+              <img id="outputImage" class="w-full h-auto" alt="Üretilen görsel" />
+            </div>
+
+            <!-- Yapılandırılmamış / desteklenmeyen sağlayıcı notu -->
+            <div id="outputNote" class="hidden rounded-xl bg-amber-500/10 border border-amber-500/30 px-4 py-3 text-amber-200 text-sm leading-relaxed"></div>
+          </div>
+
           <div id="originalPromptWrap" class="hidden">
             <h3 class="text-sm font-semibold text-slate-500 mb-1.5">Orijinal Prompt</h3>
             <p id="originalPrompt" class="rounded-xl bg-base-950/60 border border-base-700/60 px-4 py-3 text-slate-500 text-sm leading-relaxed"></p>
@@ -193,7 +211,9 @@
 <script>
   // ---- Config ----------------------------------------------------------
   const API_BASE = "http://127.0.0.1:9999";
-  const ROUTE_ENDPOINT = `${API_BASE}/api/v1/route`;
+  // /execute routes AND actually calls the chosen provider (unlike /route,
+  // which only returns the routing decision).
+  const EXECUTE_ENDPOINT = `${API_BASE}/api/v1/execute`;
 
   // ---- Provider styling --------------------------------------------------
   const PROVIDER_META = {
@@ -222,15 +242,26 @@
   const originalPromptEl = document.getElementById("originalPrompt");
   const copyBtn = document.getElementById("copyBtn");
   const endpointLabel = document.getElementById("endpointLabel");
+  const outputStatusTag = document.getElementById("outputStatusTag");
+  const outputText = document.getElementById("outputText");
+  const outputImageWrap = document.getElementById("outputImageWrap");
+  const outputImage = document.getElementById("outputImage");
+  const outputNote = document.getElementById("outputNote");
 
-  endpointLabel.textContent = ROUTE_ENDPOINT;
+  endpointLabel.textContent = EXECUTE_ENDPOINT;
+
+  const STATUS_TAGS = {
+    ok: { label: "Başarılı", classes: "bg-emerald-500/10 text-emerald-300 border-emerald-500/30" },
+    provider_not_configured: { label: "Yapılandırılmadı", classes: "bg-amber-500/10 text-amber-300 border-amber-500/30" },
+    unsupported_provider: { label: "Desteklenmiyor", classes: "bg-slate-500/10 text-slate-400 border-slate-500/30" },
+  };
 
   // ---- Helpers -------------------------------------------------------------
   function setLoading(isLoading) {
     routeBtn.disabled = isLoading;
     btnSpinner.classList.toggle("hidden", !isLoading);
     btnIcon.classList.toggle("hidden", isLoading);
-    btnLabel.textContent = isLoading ? "Yönlendiriliyor..." : "Yönlendir";
+    btnLabel.textContent = isLoading ? "Çalıştırılıyor..." : "Çalıştır";
   }
 
   function hideAllPanels() {
@@ -256,9 +287,51 @@
   function normalizeResponse(json) {
     const data = json && typeof json === "object" && "data" in json ? json.data : json;
     if (!data || typeof data !== "object") return null;
-    const { provider, refined_prompt, reasoning, original_prompt } = data;
+    const { provider, refined_prompt, reasoning, original_prompt, status, output, detail } = data;
     if (!provider || !refined_prompt) return null;
-    return { provider, refined_prompt, reasoning: reasoning ?? "", original_prompt };
+    return {
+      provider,
+      refined_prompt,
+      reasoning: reasoning ?? "",
+      original_prompt,
+      status: status ?? "ok",
+      output: output ?? null,
+      detail: detail ?? null,
+    };
+  }
+
+  function renderOutput(result) {
+    // Reset all three output variants, then show whichever one applies.
+    outputText.classList.add("hidden");
+    outputImageWrap.classList.add("hidden");
+    outputNote.classList.add("hidden");
+    outputStatusTag.classList.add("hidden");
+
+    const tag = STATUS_TAGS[result.status];
+    if (tag) {
+      outputStatusTag.textContent = tag.label;
+      outputStatusTag.className = `text-xs font-mono px-2 py-0.5 rounded-full border ${tag.classes}`;
+      outputStatusTag.classList.remove("hidden");
+    }
+
+    if (result.status !== "ok") {
+      outputNote.textContent = result.detail || "Bu sağlayıcı için henüz bir yanıt alınamadı.";
+      outputNote.classList.remove("hidden");
+      return;
+    }
+
+    const looksLikeImageUrl =
+      result.provider === "dalle" &&
+      typeof result.output === "string" &&
+      /^https?:\/\//.test(result.output.trim());
+
+    if (looksLikeImageUrl) {
+      outputImage.src = result.output.trim();
+      outputImageWrap.classList.remove("hidden");
+    } else {
+      outputText.textContent = result.output || "(Sağlayıcı boş bir yanıt döndürdü.)";
+      outputText.classList.remove("hidden");
+    }
   }
 
   function showResult(result) {
@@ -275,6 +348,7 @@
 
     refinedPromptEl.textContent = result.refined_prompt;
     reasoningEl.textContent = result.reasoning || "—";
+    renderOutput(result);
 
     if (result.original_prompt) {
       originalPromptEl.textContent = result.original_prompt;
@@ -298,7 +372,7 @@
     hideAllPanels();
 
     try {
-      const res = await fetch(ROUTE_ENDPOINT, {
+      const res = await fetch(EXECUTE_ENDPOINT, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ prompt }),
