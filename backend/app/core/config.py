@@ -10,7 +10,7 @@ load_dotenv()
 def get_settings() -> dict[str, str | None]:
     return {
         "gemini_api_key": os.getenv("GEMINI_API_KEY"),
-        "gemini_model": os.getenv("GEMINI_MODEL", "gemini-flash-latest"),
+        "gemini_model": os.getenv("GEMINI_MODEL", "gemini-flash-lite-latest"),
     }
 
 
@@ -22,7 +22,7 @@ def get_gemini_api_key() -> str:
 
 
 def get_gemini_model() -> str:
-    return get_settings()["gemini_model"] or "gemini-flash-latest"
+    return get_settings()["gemini_model"] or "gemini-flash-lite-latest"
 
 
 def get_optional_env(name: str) -> str | None:

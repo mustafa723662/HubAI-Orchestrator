@@ -54,6 +54,8 @@ GEMINI_API_KEY=your_actual_key_here
 
 Get a key at: https://aistudio.google.com/apikey
 
+> **Free-tier quota:** the default `GEMINI_MODEL` (`gemini-flash-lite-latest`) has its own daily free quota separate from other Gemini models. If routing starts returning `429 RESOURCE_EXHAUSTED`, that model's daily limit is exhausted — either wait for it to reset or point `GEMINI_MODEL` at a different available model (check `client.models.list()` for what your key currently has access to).
+
 3. `JWT_SECRET_KEY` is already pre-filled with a random value in `backend/.env` — regenerate your own anytime with:
 
 ```powershell
