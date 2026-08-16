@@ -7,7 +7,7 @@ sqlalchemy>=2.0.0
 pyjwt>=2.9.0
 bcrypt>=4.0.0
 
-# Optional — uncomment to enable real calls to these providers in
-# app/services/providers/. Also requires the matching *_API_KEY in .env.
-# openai>=1.0.0        # OpenAI + DALL-E
+openai>=1.0.0          # OpenAI + DALL-E — also requires OPENAI_API_KEY in .env
+
+# Optional — uncomment to enable Claude too. Also requires ANTHROPIC_API_KEY in .env.
 # anthropic>=0.40.0    # Claude
