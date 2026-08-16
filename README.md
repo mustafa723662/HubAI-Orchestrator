@@ -4,10 +4,18 @@ Unified AI router/orchestrator. Phase 2 uses Google Gemini Flash as the smart ro
 
 ## Phase 2 Scope
 
+- `POST /api/v1/auth/register` — create an account (username + password), returns a JWT
+- `POST /api/v1/auth/login` — log in, returns a JWT
 - `POST /api/v1/route` — Gemini Flash analyzes the prompt and returns provider + refined prompt (decision only, no provider call)
-- `POST /api/v1/execute` — same routing decision, then actually calls the chosen provider and returns its output
+- `POST /api/v1/execute` — 🔒 requires `Authorization: Bearer <token>`. Same routing decision, then actually calls the chosen provider, returns its output, and saves the run to the user's history
+- `GET /api/v1/history` — 🔒 the logged-in user's last 5 runs, newest first
+- `DELETE /api/v1/history` — 🔒 clears the logged-in user's history
 - `GET /health` — health check
 - Interactive API docs at `/docs`
+
+### Auth
+
+Accounts and prompt history are stored in a local SQLite database (`backend/hubai.db`, auto-created on first run, gitignored). Passwords are hashed with bcrypt; sessions are stateless JWTs (`JWT_SECRET_KEY` / `JWT_EXPIRE_MINUTES` in `.env`, default 7-day expiry). `/execute` and `/history` require a valid token — the frontend gates the whole app behind a login/register screen and attaches the token automatically.
 
 ### Provider status
 
@@ -46,6 +54,12 @@ GEMINI_API_KEY=your_actual_key_here
 
 Get a key at: https://aistudio.google.com/apikey
 
+3. `JWT_SECRET_KEY` is already pre-filled with a random value in `backend/.env` — regenerate your own anytime with:
+
+```powershell
+python -c "import secrets; print(secrets.token_hex(32))"
+```
+
 ## Run
 
 ```powershell
@@ -60,7 +74,15 @@ Health check:
 Invoke-RestMethod http://127.0.0.1:8000/health
 ```
 
-Smart route (requires `GEMINI_API_KEY`):
+Register + login:
+
+```powershell
+Invoke-RestMethod -Uri http://127.0.0.1:8000/api/v1/auth/register -Method POST -ContentType "application/json" -Body '{"username":"mustafa","password":"secret123"}'
+```
+
+This returns `{"access_token": "...", "token_type": "bearer", "user": {...}}`. Pass that token as `Authorization: Bearer <token>` on `/execute` and `/history` calls.
+
+Smart route (requires `GEMINI_API_KEY`, no auth needed — decision only):
 
 ```powershell
 Invoke-RestMethod -Uri http://127.0.0.1:8000/api/v1/route -Method POST -ContentType "application/json" -Body '{"prompt":"Draw a cyberpunk city at night"}'
@@ -77,10 +99,11 @@ Example response:
 }
 ```
 
-Execute (routes, then actually calls the provider):
+Execute (routes, then actually calls the provider, then saves the run to your history — requires the token from register/login):
 
 ```powershell
-Invoke-RestMethod -Uri http://127.0.0.1:8000/api/v1/execute -Method POST -ContentType "application/json" -Body '{"prompt":"What is the capital of France?"}'
+$token = (Invoke-RestMethod -Uri http://127.0.0.1:8000/api/v1/auth/login -Method POST -ContentType "application/json" -Body '{"username":"mustafa","password":"secret123"}').access_token
+Invoke-RestMethod -Uri http://127.0.0.1:8000/api/v1/execute -Method POST -ContentType "application/json" -Headers @{ Authorization = "Bearer $token" } -Body '{"prompt":"What is the capital of France?"}'
 ```
 
 Example response:

@@ -28,3 +28,14 @@ def get_gemini_model() -> str:
 def get_optional_env(name: str) -> str | None:
     """Read an optional env var (e.g. a not-yet-configured provider key)."""
     return os.getenv(name)
+
+
+def get_jwt_secret_key() -> str:
+    key = os.getenv("JWT_SECRET_KEY")
+    if not key:
+        raise ValueError("JWT_SECRET_KEY is not set. Add it to backend/.env")
+    return key
+
+
+def get_jwt_expire_minutes() -> int:
+    return int(os.getenv("JWT_EXPIRE_MINUTES", "10080"))  # 7 days

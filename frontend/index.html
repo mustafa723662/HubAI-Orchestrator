@@ -58,7 +58,7 @@
   ::-webkit-scrollbar-track { background: #0a0d14; }
   ::-webkit-scrollbar-thumb { background: #262b3a; border-radius: 999px; }
   ::-webkit-scrollbar-thumb:hover { background: #333a4d; }
-  textarea:focus { box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.25); }
+  textarea:focus, input:focus { box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.25); }
   .spinner {
     border: 2.5px solid rgba(255,255,255,0.15);
     border-top-color: #fff;
@@ -76,7 +76,93 @@
 </head>
 <body class="min-h-screen text-slate-200 font-sans antialiased">
 
-  <div class="min-h-screen flex flex-col items-center px-4 py-10 sm:py-16">
+  <!-- ===================== Auth gate (login / register) ===================== -->
+  <div id="authGate" class="hidden min-h-screen flex items-center justify-center px-4 py-10">
+    <div class="w-full max-w-sm animate-fadeUp">
+      <div class="text-center mb-6">
+        <div class="inline-flex items-center gap-2 mb-4 px-3 py-1 rounded-full border border-base-600 bg-base-800/60 text-xs font-mono text-indigo-300">
+          <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulseGlow"></span>
+          AI ORCHESTRATION ENGINE
+        </div>
+        <h1 class="text-3xl font-extrabold tracking-tight text-white">
+          Hub<span class="bg-gradient-to-r from-indigo-400 via-violet-400 to-emerald-400 bg-clip-text text-transparent">AI</span>
+        </h1>
+        <p class="mt-2 text-sm text-slate-500">Devam etmek için giriş yapın veya kayıt olun.</p>
+      </div>
+
+      <div class="rounded-2xl border border-base-600 bg-base-900/70 backdrop-blur-xl shadow-2xl shadow-black/40 p-6">
+        <div class="grid grid-cols-2 gap-1 mb-5 rounded-xl bg-base-950 border border-base-700 p-1">
+          <button id="tabLoginBtn" type="button" class="rounded-lg py-2 text-sm font-semibold transition-colors bg-indigo-500 text-white">
+            Giriş Yap
+          </button>
+          <button id="tabRegisterBtn" type="button" class="rounded-lg py-2 text-sm font-semibold transition-colors text-slate-400 hover:text-slate-200">
+            Kayıt Ol
+          </button>
+        </div>
+
+        <form id="authForm" class="space-y-4">
+          <div>
+            <label for="authUsername" class="block text-xs font-medium text-slate-400 mb-1.5">Kullanıcı Adı</label>
+            <input
+              id="authUsername"
+              type="text"
+              autocomplete="username"
+              required
+              minlength="3"
+              maxlength="32"
+              pattern="[a-zA-Z0-9_]+"
+              placeholder="kullanici_adi"
+              class="w-full rounded-xl bg-base-950 border border-base-600 text-slate-100 placeholder-slate-600
+                     px-4 py-2.5 text-sm outline-none transition-shadow duration-200"
+            />
+          </div>
+          <div>
+            <label for="authPassword" class="block text-xs font-medium text-slate-400 mb-1.5">Şifre</label>
+            <input
+              id="authPassword"
+              type="password"
+              autocomplete="current-password"
+              required
+              minlength="6"
+              maxlength="128"
+              placeholder="En az 6 karakter"
+              class="w-full rounded-xl bg-base-950 border border-base-600 text-slate-100 placeholder-slate-600
+                     px-4 py-2.5 text-sm outline-none transition-shadow duration-200"
+            />
+          </div>
+
+          <p id="authError" class="hidden text-xs text-red-300 bg-red-500/10 border border-red-500/30 rounded-lg px-3 py-2 leading-relaxed"></p>
+
+          <button
+            id="authSubmitBtn"
+            type="submit"
+            class="w-full inline-flex items-center justify-center gap-2 rounded-xl
+                   bg-gradient-to-r from-indigo-500 to-violet-500 hover:from-indigo-400 hover:to-violet-400
+                   text-white font-semibold py-2.5 text-sm transition-all duration-200
+                   shadow-lg shadow-indigo-500/20 disabled:opacity-60 disabled:cursor-not-allowed"
+          >
+            <span id="authBtnSpinner" class="spinner w-4 h-4 hidden"></span>
+            <span id="authBtnLabel">Giriş Yap</span>
+          </button>
+        </form>
+      </div>
+
+      <p class="mt-4 text-center text-xs text-slate-600 font-mono">POST /api/v1/auth/login · /api/v1/auth/register</p>
+    </div>
+  </div>
+
+  <!-- ===================== Main app (shown after login) ===================== -->
+  <div id="appRoot" class="hidden min-h-screen flex flex-col items-center px-4 py-10 sm:py-16">
+
+    <div class="w-full max-w-5xl flex items-center justify-end gap-4 mb-4 text-xs font-mono">
+      <span class="flex items-center gap-1.5 text-slate-500">
+        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0A17.933 17.933 0 0112 21.75c-2.676 0-5.216-.584-7.499-1.632z" />
+        </svg>
+        <span id="usernameLabel"></span>
+      </span>
+      <button id="logoutBtn" class="text-slate-500 hover:text-red-300 transition-colors">Çıkış Yap</button>
+    </div>
 
     <!-- Header -->
     <header class="w-full max-w-3xl text-center mb-10 animate-fadeUp">
@@ -137,6 +223,7 @@
 
         <p class="mt-3 text-xs text-slate-600 font-mono">
           POST <span class="text-slate-500">/api/v1/execute</span> → <span id="endpointLabel" class="text-slate-500"></span>
+          <span class="text-slate-700">· Bearer token ile korumalı</span>
         </p>
       </div>
 
@@ -207,7 +294,7 @@
             <path stroke-linecap="round" stroke-linejoin="round" d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09z" />
           </svg>
         </div>
-        <p class="text-sm text-slate-500">Sonuçlar burada görünecek. Yukarıya bir prompt yazıp <span class="text-slate-400">Yönlendir</span>'e basın.</p>
+        <p class="text-sm text-slate-500">Sonuçlar burada görünecek. Yukarıya bir prompt yazıp <span class="text-slate-400">Çalıştır</span>'a basın.</p>
       </div>
 
       <footer class="mt-10 text-center text-xs text-slate-700 font-mono">
@@ -244,9 +331,14 @@
 <script>
   // ---- Config ----------------------------------------------------------
   const API_BASE = "http://127.0.0.1:9999";
-  // /execute routes AND actually calls the chosen provider (unlike /route,
-  // which only returns the routing decision).
-  const EXECUTE_ENDPOINT = `${API_BASE}/api/v1/execute`;
+  const API_V1 = `${API_BASE}/api/v1`;
+  const EXECUTE_ENDPOINT = `${API_V1}/execute`;
+  const HISTORY_ENDPOINT = `${API_V1}/history`;
+  const LOGIN_ENDPOINT = `${API_V1}/auth/login`;
+  const REGISTER_ENDPOINT = `${API_V1}/auth/register`;
+
+  const TOKEN_KEY = "hubai_token";
+  const USER_KEY = "hubai_user";
 
   // ---- Provider styling --------------------------------------------------
   const PROVIDER_META = {
@@ -257,7 +349,28 @@
     dalle:      { label: "DALL·E",     emoji: "🖼️", classes: "bg-cyan-500/10 text-cyan-300 border-cyan-500/30" },
   };
 
-  // ---- DOM refs ----------------------------------------------------------
+  const STATUS_TAGS = {
+    ok: { label: "Başarılı", classes: "bg-emerald-500/10 text-emerald-300 border-emerald-500/30" },
+    provider_not_configured: { label: "Yapılandırılmadı", classes: "bg-amber-500/10 text-amber-300 border-amber-500/30" },
+    unsupported_provider: { label: "Desteklenmiyor", classes: "bg-slate-500/10 text-slate-400 border-slate-500/30" },
+  };
+
+  // ---- DOM refs: auth gate --------------------------------------------------
+  const authGate = document.getElementById("authGate");
+  const appRoot = document.getElementById("appRoot");
+  const tabLoginBtn = document.getElementById("tabLoginBtn");
+  const tabRegisterBtn = document.getElementById("tabRegisterBtn");
+  const authForm = document.getElementById("authForm");
+  const authUsername = document.getElementById("authUsername");
+  const authPassword = document.getElementById("authPassword");
+  const authError = document.getElementById("authError");
+  const authSubmitBtn = document.getElementById("authSubmitBtn");
+  const authBtnSpinner = document.getElementById("authBtnSpinner");
+  const authBtnLabel = document.getElementById("authBtnLabel");
+  const usernameLabel = document.getElementById("usernameLabel");
+  const logoutBtn = document.getElementById("logoutBtn");
+
+  // ---- DOM refs: main app -----------------------------------------------
   const promptEl = document.getElementById("prompt");
   const routeBtn = document.getElementById("routeBtn");
   const clearBtn = document.getElementById("clearBtn");
@@ -286,13 +399,143 @@
 
   endpointLabel.textContent = EXECUTE_ENDPOINT;
 
-  const STATUS_TAGS = {
-    ok: { label: "Başarılı", classes: "bg-emerald-500/10 text-emerald-300 border-emerald-500/30" },
-    provider_not_configured: { label: "Yapılandırılmadı", classes: "bg-amber-500/10 text-amber-300 border-amber-500/30" },
-    unsupported_provider: { label: "Desteklenmiyor", classes: "bg-slate-500/10 text-slate-400 border-slate-500/30" },
-  };
+  // ======================================================================
+  // Session (JWT stored in localStorage)
+  // ======================================================================
+  function getToken() {
+    return localStorage.getItem(TOKEN_KEY);
+  }
 
-  // ---- Helpers -------------------------------------------------------------
+  function setSession(token, user) {
+    localStorage.setItem(TOKEN_KEY, token);
+    localStorage.setItem(USER_KEY, JSON.stringify(user));
+  }
+
+  function clearSession() {
+    localStorage.removeItem(TOKEN_KEY);
+    localStorage.removeItem(USER_KEY);
+  }
+
+  function getStoredUser() {
+    try {
+      return JSON.parse(localStorage.getItem(USER_KEY) || "null");
+    } catch {
+      return null;
+    }
+  }
+
+  function authHeaders() {
+    const token = getToken();
+    return token ? { Authorization: `Bearer ${token}` } : {};
+  }
+
+  function showAppRoot() {
+    authGate.classList.add("hidden");
+    appRoot.classList.remove("hidden");
+    const user = getStoredUser();
+    usernameLabel.textContent = user?.username ?? "";
+  }
+
+  function showAuthGate(message) {
+    appRoot.classList.add("hidden");
+    authGate.classList.remove("hidden");
+    if (message) {
+      authError.textContent = message;
+      authError.classList.remove("hidden");
+    } else {
+      authError.classList.add("hidden");
+    }
+    authUsername.focus();
+  }
+
+  function logout(message) {
+    clearSession();
+    promptEl.value = "";
+    showEmpty();
+    historyItems = [];
+    renderHistory();
+    showAuthGate(message);
+  }
+
+  // ======================================================================
+  // Auth form (login / register tabs)
+  // ======================================================================
+  let authMode = "login"; // "login" | "register"
+
+  function setAuthMode(mode) {
+    authMode = mode;
+    const isLogin = mode === "login";
+    tabLoginBtn.className = isLogin
+      ? "rounded-lg py-2 text-sm font-semibold transition-colors bg-indigo-500 text-white"
+      : "rounded-lg py-2 text-sm font-semibold transition-colors text-slate-400 hover:text-slate-200";
+    tabRegisterBtn.className = !isLogin
+      ? "rounded-lg py-2 text-sm font-semibold transition-colors bg-indigo-500 text-white"
+      : "rounded-lg py-2 text-sm font-semibold transition-colors text-slate-400 hover:text-slate-200";
+    authPassword.autocomplete = isLogin ? "current-password" : "new-password";
+    authBtnLabel.textContent = isLogin ? "Giriş Yap" : "Kayıt Ol";
+    authError.classList.add("hidden");
+  }
+
+  tabLoginBtn.addEventListener("click", () => setAuthMode("login"));
+  tabRegisterBtn.addEventListener("click", () => setAuthMode("register"));
+
+  function setAuthLoading(isLoading) {
+    authSubmitBtn.disabled = isLoading;
+    authBtnSpinner.classList.toggle("hidden", !isLoading);
+  }
+
+  authForm.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    authError.classList.add("hidden");
+
+    const username = authUsername.value.trim();
+    const password = authPassword.value;
+    const endpoint = authMode === "login" ? LOGIN_ENDPOINT : REGISTER_ENDPOINT;
+
+    setAuthLoading(true);
+    try {
+      const res = await fetch(endpoint, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ username, password }),
+      });
+
+      let json;
+      try {
+        json = await res.json();
+      } catch {
+        json = null;
+      }
+
+      if (!res.ok) {
+        const detail = json?.detail;
+        const message = Array.isArray(detail)
+          ? detail.map((d) => d.msg).join(", ")
+          : detail || `HTTP ${res.status}`;
+        throw new Error(message);
+      }
+
+      setSession(json.access_token, json.user);
+      authForm.reset();
+      showAppRoot();
+      showEmpty();
+      await fetchHistory();
+    } catch (err) {
+      const isNetworkError = err instanceof TypeError;
+      authError.textContent = isNetworkError
+        ? `Sunucuya ulaşılamadı. Backend'in ${API_BASE} adresinde çalıştığından emin olun.`
+        : err.message;
+      authError.classList.remove("hidden");
+    } finally {
+      setAuthLoading(false);
+    }
+  });
+
+  logoutBtn.addEventListener("click", () => logout());
+
+  // ======================================================================
+  // Result rendering (shared by fresh runs and history clicks)
+  // ======================================================================
   function setLoading(isLoading) {
     routeBtn.disabled = isLoading;
     btnSpinner.classList.toggle("hidden", !isLoading);
@@ -317,9 +560,7 @@
     emptyState.classList.remove("hidden");
   }
 
-  // Backend'in gerçek yanıtı düz bir obje: {provider, refined_prompt, reasoning, original_prompt}.
-  // Olur da ileride {"status": "...", "data": {...}} gibi bir sarmalayıcıya geçilirse
-  // diye burada ikisini de destekliyoruz.
+  // Backend'in gerçek yanıtı düz bir obje: {provider, refined_prompt, reasoning, original_prompt, status, output, detail}.
   function normalizeResponse(json) {
     const data = json && typeof json === "object" && "data" in json ? json.data : json;
     if (!data || typeof data !== "object") return null;
@@ -337,7 +578,6 @@
   }
 
   function renderOutput(result) {
-    // Reset all three output variants, then show whichever one applies.
     outputText.classList.add("hidden");
     outputImageWrap.classList.add("hidden");
     outputNote.classList.add("hidden");
@@ -370,102 +610,6 @@
     }
   }
 
-  // ---- History (last 5 runs, persisted in localStorage) --------------------
-  const HISTORY_KEY = "hubai_history";
-  const MAX_HISTORY = 5;
-
-  function loadHistory() {
-    try {
-      const parsed = JSON.parse(localStorage.getItem(HISTORY_KEY) || "[]");
-      return Array.isArray(parsed) ? parsed.slice(0, MAX_HISTORY) : [];
-    } catch {
-      return [];
-    }
-  }
-
-  function saveHistory() {
-    try {
-      localStorage.setItem(HISTORY_KEY, JSON.stringify(history));
-    } catch {
-      /* localStorage unavailable (private mode / quota) — history just won't persist */
-    }
-  }
-
-  function timeAgo(timestamp) {
-    const diffSec = Math.max(0, Math.floor((Date.now() - timestamp) / 1000));
-    if (diffSec < 60) return "az önce";
-    const diffMin = Math.floor(diffSec / 60);
-    if (diffMin < 60) return `${diffMin} dk önce`;
-    const diffHour = Math.floor(diffMin / 60);
-    if (diffHour < 24) return `${diffHour} sa önce`;
-    return `${Math.floor(diffHour / 24)} gün önce`;
-  }
-
-  function addToHistory(result) {
-    history = [{ ...result, timestamp: Date.now() }, ...history].slice(0, MAX_HISTORY);
-    saveHistory();
-    renderHistory();
-  }
-
-  function renderHistory() {
-    historyList.innerHTML = "";
-    const hasItems = history.length > 0;
-    historyEmpty.classList.toggle("hidden", hasItems);
-    clearHistoryBtn.classList.toggle("hidden", !hasItems);
-
-    history.forEach((entry) => {
-      const meta = PROVIDER_META[entry.provider] ?? {
-        label: entry.provider,
-        emoji: "🤖",
-      };
-
-      const item = document.createElement("button");
-      item.type = "button";
-      item.title = entry.original_prompt || "";
-      item.className =
-        "w-full text-left rounded-xl border border-base-700 hover:border-indigo-500/50 " +
-        "bg-base-950/60 hover:bg-base-950 px-3 py-2.5 transition-colors";
-
-      const row = document.createElement("div");
-      row.className = "flex items-center gap-1.5 mb-1";
-
-      const emojiSpan = document.createElement("span");
-      emojiSpan.className = "text-xs";
-      emojiSpan.textContent = meta.emoji;
-
-      const labelSpan = document.createElement("span");
-      labelSpan.className = "text-[11px] font-semibold text-slate-300";
-      labelSpan.textContent = meta.label;
-
-      const timeSpan = document.createElement("span");
-      timeSpan.className = "ml-auto text-[10px] text-slate-600 font-mono shrink-0";
-      timeSpan.textContent = timeAgo(entry.timestamp);
-
-      row.append(emojiSpan, labelSpan, timeSpan);
-
-      const promptP = document.createElement("p");
-      promptP.className = "clamp-2 text-xs text-slate-400";
-      promptP.textContent = entry.original_prompt || entry.refined_prompt || "";
-
-      item.append(row, promptP);
-      item.addEventListener("click", () => {
-        promptEl.value = entry.original_prompt || "";
-        showResult(entry);
-        promptEl.scrollIntoView({ behavior: "smooth", block: "start" });
-      });
-
-      historyList.appendChild(item);
-    });
-  }
-
-  clearHistoryBtn.addEventListener("click", () => {
-    history = [];
-    saveHistory();
-    renderHistory();
-  });
-
-  let history = loadHistory();
-
   function showResult(result) {
     hideAllPanels();
 
@@ -492,6 +636,101 @@
     resultCard.classList.remove("hidden");
   }
 
+  // ======================================================================
+  // History — persisted server-side (SQLite), scoped to the logged-in user
+  // ======================================================================
+  let historyItems = [];
+
+  function timeAgo(isoString) {
+    const diffSec = Math.max(0, Math.floor((Date.now() - new Date(isoString + "Z").getTime()) / 1000));
+    if (diffSec < 60) return "az önce";
+    const diffMin = Math.floor(diffSec / 60);
+    if (diffMin < 60) return `${diffMin} dk önce`;
+    const diffHour = Math.floor(diffMin / 60);
+    if (diffHour < 24) return `${diffHour} sa önce`;
+    return `${Math.floor(diffHour / 24)} gün önce`;
+  }
+
+  async function fetchHistory() {
+    try {
+      const res = await fetch(HISTORY_ENDPOINT, { headers: { ...authHeaders() } });
+      if (res.status === 401) {
+        logout("Oturumunuz sona erdi. Lütfen tekrar giriş yapın.");
+        return;
+      }
+      if (!res.ok) return;
+      historyItems = await res.json();
+    } catch {
+      /* network hiccup — keep whatever was rendered before */
+    }
+    renderHistory();
+  }
+
+  function renderHistory() {
+    historyList.innerHTML = "";
+    const hasItems = historyItems.length > 0;
+    historyEmpty.classList.toggle("hidden", hasItems);
+    clearHistoryBtn.classList.toggle("hidden", !hasItems);
+
+    historyItems.forEach((entry) => {
+      const meta = PROVIDER_META[entry.provider] ?? { label: entry.provider, emoji: "🤖" };
+
+      const item = document.createElement("button");
+      item.type = "button";
+      item.title = entry.original_prompt || "";
+      item.className =
+        "w-full text-left rounded-xl border border-base-700 hover:border-indigo-500/50 " +
+        "bg-base-950/60 hover:bg-base-950 px-3 py-2.5 transition-colors";
+
+      const row = document.createElement("div");
+      row.className = "flex items-center gap-1.5 mb-1";
+
+      const emojiSpan = document.createElement("span");
+      emojiSpan.className = "text-xs";
+      emojiSpan.textContent = meta.emoji;
+
+      const labelSpan = document.createElement("span");
+      labelSpan.className = "text-[11px] font-semibold text-slate-300";
+      labelSpan.textContent = meta.label;
+
+      const timeSpan = document.createElement("span");
+      timeSpan.className = "ml-auto text-[10px] text-slate-600 font-mono shrink-0";
+      timeSpan.textContent = timeAgo(entry.created_at);
+
+      row.append(emojiSpan, labelSpan, timeSpan);
+
+      const promptP = document.createElement("p");
+      promptP.className = "clamp-2 text-xs text-slate-400";
+      promptP.textContent = entry.original_prompt || entry.refined_prompt || "";
+
+      item.append(row, promptP);
+      item.addEventListener("click", () => {
+        promptEl.value = entry.original_prompt || "";
+        showResult(entry);
+        promptEl.scrollIntoView({ behavior: "smooth", block: "start" });
+      });
+
+      historyList.appendChild(item);
+    });
+  }
+
+  clearHistoryBtn.addEventListener("click", async () => {
+    try {
+      const res = await fetch(HISTORY_ENDPOINT, { method: "DELETE", headers: { ...authHeaders() } });
+      if (res.status === 401) {
+        logout("Oturumunuz sona erdi. Lütfen tekrar giriş yapın.");
+        return;
+      }
+    } catch {
+      /* ignore — we still clear the local view below */
+    }
+    historyItems = [];
+    renderHistory();
+  });
+
+  // ======================================================================
+  // Execute
+  // ======================================================================
   async function routePrompt() {
     const prompt = promptEl.value.trim();
     if (!prompt) {
@@ -506,9 +745,14 @@
     try {
       const res = await fetch(EXECUTE_ENDPOINT, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", ...authHeaders() },
         body: JSON.stringify({ prompt }),
       });
+
+      if (res.status === 401) {
+        logout("Oturumunuz sona erdi. Lütfen tekrar giriş yapın.");
+        return;
+      }
 
       let json;
       try {
@@ -528,7 +772,7 @@
       }
 
       showResult(result);
-      addToHistory(result);
+      await fetchHistory(); // backend already persisted this run — pull the fresh list
     } catch (err) {
       const isNetworkError = err instanceof TypeError;
       showError(
@@ -563,8 +807,18 @@
     if ((e.ctrlKey || e.metaKey) && e.key === "Enter") routePrompt();
   });
 
+  // ======================================================================
+  // Boot
+  // ======================================================================
+  setAuthMode("login");
   showEmpty();
-  renderHistory();
+
+  if (getToken()) {
+    showAppRoot();
+    fetchHistory(); // also doubles as a token-validity check (401 -> logout)
+  } else {
+    showAuthGate();
+  }
 </script>
 </body>
 </html>
