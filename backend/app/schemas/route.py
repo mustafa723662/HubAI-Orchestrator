@@ -7,6 +7,10 @@ Provider = Literal["openai", "claude", "gemini", "midjourney", "dalle"]
 
 class RouteRequest(BaseModel):
     prompt: str = Field(..., min_length=1, description="User prompt to route")
+    conversation_id: str | None = Field(
+        default=None,
+        description="Continue an existing multi-turn conversation with full context; omit to start a new one.",
+    )
 
 
 class RouteResponse(BaseModel):
@@ -30,4 +34,7 @@ class ExecuteResponse(BaseModel):
     )
     detail: str | None = Field(
         default=None, description="Explanation when status isn't 'ok'."
+    )
+    conversation_id: str = Field(
+        description="Pass this back as conversation_id on the next call to continue this chat."
     )

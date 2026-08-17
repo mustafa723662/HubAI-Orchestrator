@@ -28,6 +28,9 @@ class PromptHistory(Base):
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
     user_id: Mapped[int] = mapped_column(ForeignKey("users.id"), nullable=False, index=True)
+    # Groups turns of the same multi-turn conversation together. A fresh hex
+    # UUID is generated for the first turn; replies reuse it.
+    conversation_id: Mapped[str] = mapped_column(String(36), nullable=False, index=True)
 
     provider: Mapped[str] = mapped_column(String(32), nullable=False)
     original_prompt: Mapped[str] = mapped_column(Text, nullable=False)

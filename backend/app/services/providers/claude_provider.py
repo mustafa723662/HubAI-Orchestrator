@@ -1,9 +1,11 @@
 from app.core.config import get_optional_env
+from app.services.conversation import to_chat_messages
 from app.services.providers.base import ProviderNotConfigured
 
 
-async def run_claude(prompt: str) -> str:
-    """Run the refined prompt against Anthropic's Claude API.
+async def run_claude(prompt: str, history: list[dict] | None = None) -> str:
+    """Run the prompt — optionally with prior conversation history — against
+    Anthropic's Claude API.
 
     Not active yet: requires ANTHROPIC_API_KEY in backend/.env and the
     `anthropic` package (add `anthropic>=0.40.0` to requirements.txt, then
@@ -28,6 +30,6 @@ async def run_claude(prompt: str) -> str:
     response = await client.messages.create(
         model=model,
         max_tokens=2048,
-        messages=[{"role": "user", "content": prompt}],
+        messages=to_chat_messages(prompt, history),
     )
     return "".join(block.text for block in response.content if block.type == "text")

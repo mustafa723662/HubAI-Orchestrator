@@ -8,7 +8,8 @@ Unified AI router/orchestrator. Phase 2 uses Google Gemini Flash as the smart ro
 - `POST /api/v1/auth/login` — log in, returns a JWT
 - `POST /api/v1/route` — Gemini Flash analyzes the prompt and returns provider + refined prompt (decision only, no provider call)
 - `POST /api/v1/execute` — 🔒 requires `Authorization: Bearer <token>`. Same routing decision, then actually calls the chosen provider, returns its output, and saves the run to the user's history
-- `GET /api/v1/history` — 🔒 the logged-in user's last 5 runs, newest first
+- `GET /api/v1/history` — 🔒 the logged-in user's last 5 *conversations* (most recent turn each), newest first
+- `GET /api/v1/history/{conversation_id}` — 🔒 the full turn-by-turn thread for one conversation, oldest first
 - `DELETE /api/v1/history` — 🔒 clears the logged-in user's history
 - `GET /health` — health check
 - Interactive API docs at `/docs`
@@ -16,6 +17,18 @@ Unified AI router/orchestrator. Phase 2 uses Google Gemini Flash as the smart ro
 ### Auth
 
 Accounts and prompt history are stored in a local SQLite database (`backend/hubai.db`, auto-created on first run, gitignored). Passwords are hashed with bcrypt; sessions are stateless JWTs (`JWT_SECRET_KEY` / `JWT_EXPIRE_MINUTES` in `.env`, default 7-day expiry). `/execute` and `/history` require a valid token — the frontend gates the whole app behind a login/register screen and attaches the token automatically.
+
+> **Upgrading an existing local DB:** the conversation feature added a
+> required `conversation_id` column to `prompt_history`. There's no
+> migration tool wired up (just `Base.metadata.create_all()`, which only
+> creates missing *tables*, not missing *columns*) — if your local
+> `backend/hubai.db` predates this, delete it and let it recreate on next
+> run. On Render's free plan this is a non-issue since the disk is already
+> ephemeral (see below).
+
+### Multi-turn conversations
+
+`/execute` accepts an optional `conversation_id` in the request body. Omit it to start a new conversation (the response returns a freshly generated `conversation_id`); pass it back on the next call to continue that conversation — the backend reloads every prior turn from the DB, feeds it to the router (so Gemini can resolve references like "it"/"that" into a self-contained `refined_prompt`) and to the chosen provider (as real conversational context, for the text providers — image providers ignore it, since the refined prompt is already self-contained). The frontend's reply box under each response does this automatically; clicking a conversation in the history sidebar fetches its full thread via `GET /history/{conversation_id}` and lets you keep replying to it.
 
 ### Provider status
 

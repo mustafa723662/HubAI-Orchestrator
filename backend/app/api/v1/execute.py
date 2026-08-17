@@ -1,4 +1,7 @@
+import uuid
+
 from fastapi import APIRouter, Depends, HTTPException, Request
+from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.core.config import get_gemini_api_key, get_gemini_model
@@ -14,6 +17,26 @@ from app.services.providers import PROVIDER_HANDLERS, ProviderNotConfigured, Pro
 router = APIRouter(prefix="/execute", tags=["execute"])
 
 
+def _load_conversation_turns(db: Session, user_id: int, conversation_id: str) -> list[dict]:
+    """Reconstruct a generic [{role, content}, ...] turn list (oldest first)
+    from this user's prior exchanges in the conversation."""
+    rows = db.scalars(
+        select(PromptHistory)
+        .where(
+            PromptHistory.user_id == user_id,
+            PromptHistory.conversation_id == conversation_id,
+        )
+        .order_by(PromptHistory.created_at.asc())
+    ).all()
+
+    turns: list[dict] = []
+    for row in rows:
+        turns.append({"role": "user", "content": row.original_prompt})
+        if row.output:
+            turns.append({"role": "assistant", "content": row.output})
+    return turns
+
+
 @router.post("", response_model=ExecuteResponse)
 @limiter.limit("10/hour")
 async def execute_prompt(
@@ -23,8 +46,19 @@ async def execute_prompt(
     db: Session = Depends(get_db),
 ) -> ExecuteResponse:
     """Route the prompt with Gemini, actually call the chosen provider, and
-    save the run to the logged-in user's history."""
+    save the run to the logged-in user's history.
+
+    Pass `conversation_id` (from a previous response) to continue that
+    conversation with full prior context; omit it to start a new one.
+    """
     check_and_increment_daily_gemini_cap()
+
+    conversation_id = payload.conversation_id or uuid.uuid4().hex
+    history_turns = (
+        _load_conversation_turns(db, current_user.id, conversation_id)
+        if payload.conversation_id
+        else []
+    )
 
     try:
         api_key = get_gemini_api_key()
@@ -32,7 +66,9 @@ async def execute_prompt(
         raise HTTPException(status_code=503, detail=str(exc)) from exc
 
     try:
-        decision = await route_with_gemini(payload.prompt, api_key, get_gemini_model())
+        decision = await route_with_gemini(
+            payload.prompt, api_key, get_gemini_model(), history_turns
+        )
     except Exception as exc:
         raise HTTPException(status_code=502, detail=f"Gemini routing failed: {exc}") from exc
 
@@ -43,7 +79,7 @@ async def execute_prompt(
     run_status: str = "ok"
 
     try:
-        output = await handler(decision.refined_prompt)
+        output = await handler(decision.refined_prompt, history_turns)
     except ProviderNotConfigured as exc:
         run_status = "provider_not_configured"
         detail = str(exc)
@@ -63,11 +99,13 @@ async def execute_prompt(
         status=run_status,
         output=output,
         detail=detail,
+        conversation_id=conversation_id,
     )
 
     db.add(
         PromptHistory(
             user_id=current_user.id,
+            conversation_id=conversation_id,
             provider=response.provider,
             original_prompt=response.original_prompt,
             refined_prompt=response.refined_prompt,

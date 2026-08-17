@@ -177,7 +177,8 @@
       <p class="mt-3 text-slate-400 max-w-xl mx-auto text-sm sm:text-base">
         Tek bir prompt yazın; sistem isteğinizi analiz edip
         <span class="text-slate-300">OpenAI, Claude, Gemini, Midjourney veya DALL·E</span>
-        arasından en uygun modeli seçsin, sonra o modeli gerçekten çalıştırıp yanıtını göstersin.
+        arasından en uygun modeli seçsin, sonra o modeli gerçekten çalıştırıp yanıtını göstersin —
+        isterseniz sohbete devam edin.
       </p>
     </header>
 
@@ -240,64 +241,33 @@
         </div>
       </div>
 
-      <!-- Result card -->
-      <section id="resultCard" class="hidden mt-5 rounded-2xl border border-base-600 bg-base-900/70 backdrop-blur-xl shadow-2xl shadow-black/40 p-5 sm:p-7 animate-fadeUp">
+      <!-- Conversation thread: one block per turn, appended as the chat continues -->
+      <div id="conversationThread" class="mt-5 space-y-4"></div>
 
-        <div class="flex flex-wrap items-center justify-between gap-3 mb-5">
-          <span class="text-xs uppercase tracking-wider text-slate-500 font-mono">Seçilen Model</span>
-          <div class="flex items-center gap-2">
-            <span id="providerBadge" class="inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-sm font-semibold"></span>
-            <button
-              id="reasoningToggleBtn"
-              type="button"
-              title="Seçim gerekçesini göster/gizle"
-              aria-expanded="false"
-              class="w-8 h-8 shrink-0 inline-flex items-center justify-center rounded-full border border-base-700
-                     text-slate-500 hover:text-slate-200 hover:border-base-500 transition-colors leading-none"
-            >
-              ⋯
-            </button>
-          </div>
+      <!-- Reply box: only shown once a conversation is active -->
+      <div id="replyWrap" class="hidden mt-4 rounded-2xl border border-base-600 bg-base-900/70 backdrop-blur-xl shadow-xl shadow-black/30 p-4 animate-fadeUp">
+        <label for="replyPrompt" class="block text-xs font-medium text-slate-400 mb-2">Sohbete devam edin</label>
+        <div class="flex flex-col sm:flex-row gap-3">
+          <textarea
+            id="replyPrompt"
+            rows="2"
+            placeholder="Takip sorunuzu yazın..."
+            class="flex-1 resize-none rounded-xl bg-base-950 border border-base-600 text-slate-100 placeholder-slate-600
+                   px-4 py-2.5 text-sm outline-none transition-shadow duration-200 font-mono"
+          ></textarea>
+          <button
+            id="replyBtn"
+            type="button"
+            class="shrink-0 inline-flex items-center justify-center gap-2 rounded-xl
+                   bg-gradient-to-r from-indigo-500 to-violet-500 hover:from-indigo-400 hover:to-violet-400
+                   text-white font-semibold px-5 py-2.5 text-sm transition-all duration-200
+                   shadow-lg shadow-indigo-500/20 disabled:opacity-60 disabled:cursor-not-allowed"
+          >
+            <span id="replyBtnSpinner" class="spinner w-4 h-4 hidden"></span>
+            <span id="replyBtnLabel">Gönder</span>
+          </button>
         </div>
-
-        <div id="reasoningWrap" class="hidden mb-5 -mt-2 animate-fadeUp">
-          <h3 class="text-xs font-semibold text-slate-500 mb-1.5">Seçim Gerekçesi</h3>
-          <p id="reasoning" class="rounded-xl bg-base-950 border border-base-700 px-4 py-3 text-slate-400 text-sm leading-relaxed"></p>
-        </div>
-
-        <div class="space-y-5">
-          <div>
-            <div class="flex items-center justify-between mb-1.5">
-              <h3 class="text-sm font-semibold text-slate-300">Optimize Edilmiş Prompt</h3>
-              <button id="copyBtn" class="text-xs text-slate-500 hover:text-indigo-300 transition-colors font-mono">Kopyala</button>
-            </div>
-            <p id="refinedPrompt" class="rounded-xl bg-base-950 border border-base-700 px-4 py-3 text-slate-200 text-sm leading-relaxed font-mono whitespace-pre-wrap"></p>
-          </div>
-
-          <div>
-            <div class="flex items-center justify-between mb-1.5">
-              <h3 class="text-sm font-semibold text-slate-300">Model Çıktısı</h3>
-              <span id="outputStatusTag" class="hidden text-xs font-mono px-2 py-0.5 rounded-full border"></span>
-            </div>
-
-            <!-- Başarılı metin çıktısı -->
-            <p id="outputText" class="hidden rounded-xl bg-base-950 border border-base-700 px-4 py-3 text-slate-200 text-sm leading-relaxed whitespace-pre-wrap"></p>
-
-            <!-- Başarılı görsel çıktısı (DALL-E) -->
-            <div id="outputImageWrap" class="hidden rounded-xl overflow-hidden border border-base-700 bg-base-950">
-              <img id="outputImage" class="w-full h-auto" alt="Üretilen görsel" />
-            </div>
-
-            <!-- Yapılandırılmamış / desteklenmeyen sağlayıcı notu -->
-            <div id="outputNote" class="hidden rounded-xl bg-amber-500/10 border border-amber-500/30 px-4 py-3 text-amber-200 text-sm leading-relaxed"></div>
-          </div>
-
-          <div id="originalPromptWrap" class="hidden">
-            <h3 class="text-sm font-semibold text-slate-500 mb-1.5">Orijinal Prompt</h3>
-            <p id="originalPrompt" class="rounded-xl bg-base-950/60 border border-base-700/60 px-4 py-3 text-slate-500 text-sm leading-relaxed"></p>
-          </div>
-        </div>
-      </section>
+      </div>
 
       <!-- Empty state -->
       <div id="emptyState" class="mt-5 rounded-2xl border border-dashed border-base-700 px-6 py-10 text-center animate-fadeUp">
@@ -306,7 +276,7 @@
             <path stroke-linecap="round" stroke-linejoin="round" d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09z" />
           </svg>
         </div>
-        <p class="text-sm text-slate-500">Sonuçlar burada görünecek. Yukarıya bir prompt yazıp <span class="text-slate-400">Çalıştır</span>'a basın.</p>
+        <p class="text-sm text-slate-500">Sohbet burada görünecek. Yukarıya bir prompt yazıp <span class="text-slate-400">Çalıştır</span>'a basın.</p>
       </div>
 
       <footer class="mt-10 text-center text-xs text-slate-700 font-mono">
@@ -332,7 +302,7 @@
         <div id="historyList" class="space-y-2"></div>
 
         <p id="historyEmpty" class="text-xs text-slate-600 leading-relaxed">
-          Henüz geçmiş yok. Bir prompt çalıştırdığınızda son 5 sonuç burada listelenecek.
+          Henüz geçmiş yok. Bir prompt çalıştırdığınızda son 5 konuşma burada listelenecek.
         </p>
       </div>
     </aside>
@@ -396,27 +366,25 @@
   const btnLabel = document.getElementById("btnLabel");
   const errorBox = document.getElementById("errorBox");
   const errorMessage = document.getElementById("errorMessage");
-  const resultCard = document.getElementById("resultCard");
   const emptyState = document.getElementById("emptyState");
-  const providerBadge = document.getElementById("providerBadge");
-  const reasoningToggleBtn = document.getElementById("reasoningToggleBtn");
-  const reasoningWrap = document.getElementById("reasoningWrap");
-  const refinedPromptEl = document.getElementById("refinedPrompt");
-  const reasoningEl = document.getElementById("reasoning");
-  const originalPromptWrap = document.getElementById("originalPromptWrap");
-  const originalPromptEl = document.getElementById("originalPrompt");
-  const copyBtn = document.getElementById("copyBtn");
+  const conversationThread = document.getElementById("conversationThread");
+  const replyWrap = document.getElementById("replyWrap");
+  const replyPromptEl = document.getElementById("replyPrompt");
+  const replyBtn = document.getElementById("replyBtn");
+  const replyBtnSpinner = document.getElementById("replyBtnSpinner");
+  const replyBtnLabel = document.getElementById("replyBtnLabel");
   const endpointLabel = document.getElementById("endpointLabel");
-  const outputStatusTag = document.getElementById("outputStatusTag");
-  const outputText = document.getElementById("outputText");
-  const outputImageWrap = document.getElementById("outputImageWrap");
-  const outputImage = document.getElementById("outputImage");
-  const outputNote = document.getElementById("outputNote");
   const historyList = document.getElementById("historyList");
   const historyEmpty = document.getElementById("historyEmpty");
   const clearHistoryBtn = document.getElementById("clearHistoryBtn");
 
   endpointLabel.textContent = EXECUTE_ENDPOINT;
+
+  // Current multi-turn conversation, client-side mirror of the backend
+  // thread. Each entry: {provider, refined_prompt, reasoning,
+  // original_prompt, status, output, detail, conversation_id}.
+  let conversationTurns = [];
+  let currentConversationId = null;
 
   // ======================================================================
   // Session (JWT stored in localStorage)
@@ -470,7 +438,9 @@
   function logout(message) {
     clearSession();
     promptEl.value = "";
-    showEmpty();
+    conversationTurns = [];
+    currentConversationId = null;
+    renderConversation();
     historyItems = [];
     renderHistory();
     showAuthGate(message);
@@ -537,7 +507,7 @@
       setSession(json.access_token, json.user);
       authForm.reset();
       showAppRoot();
-      showEmpty();
+      renderConversation();
       await fetchHistory();
     } catch (err) {
       const isNetworkError = err instanceof TypeError;
@@ -562,28 +532,26 @@
     btnLabel.textContent = isLoading ? "Çalıştırılıyor..." : "Çalıştır";
   }
 
-  function hideAllPanels() {
-    errorBox.classList.add("hidden");
-    resultCard.classList.add("hidden");
-    emptyState.classList.add("hidden");
+  function setReplyLoading(isLoading) {
+    replyBtn.disabled = isLoading;
+    replyBtnSpinner.classList.toggle("hidden", !isLoading);
+    replyBtnLabel.textContent = isLoading ? "Gönderiliyor..." : "Gönder";
   }
 
   function showError(message) {
-    hideAllPanels();
     errorMessage.textContent = message;
     errorBox.classList.remove("hidden");
   }
 
-  function showEmpty() {
-    hideAllPanels();
-    emptyState.classList.remove("hidden");
+  function hideError() {
+    errorBox.classList.add("hidden");
   }
 
-  // Backend'in gerçek yanıtı düz bir obje: {provider, refined_prompt, reasoning, original_prompt, status, output, detail}.
+  // Backend'in gerçek yanıtı düz bir obje: {provider, refined_prompt, reasoning, original_prompt, status, output, detail, conversation_id}.
   function normalizeResponse(json) {
     const data = json && typeof json === "object" && "data" in json ? json.data : json;
     if (!data || typeof data !== "object") return null;
-    const { provider, refined_prompt, reasoning, original_prompt, status, output, detail } = data;
+    const { provider, refined_prompt, reasoning, original_prompt, status, output, detail, conversation_id } = data;
     if (!provider || !refined_prompt) return null;
     return {
       provider,
@@ -593,68 +561,151 @@
       status: status ?? "ok",
       output: output ?? null,
       detail: detail ?? null,
+      conversation_id: conversation_id ?? null,
     };
   }
 
-  function renderOutput(result) {
-    outputText.classList.add("hidden");
-    outputImageWrap.classList.add("hidden");
-    outputNote.classList.add("hidden");
-    outputStatusTag.classList.add("hidden");
+  // ---- Conversation thread rendering -------------------------------------
+  function createTurnElement(turn) {
+    const wrap = document.createElement("div");
+    wrap.className = "space-y-2";
 
-    const tag = STATUS_TAGS[result.status];
-    if (tag) {
-      outputStatusTag.textContent = tag.label;
-      outputStatusTag.className = `text-xs font-mono px-2 py-0.5 rounded-full border ${tag.classes}`;
-      outputStatusTag.classList.remove("hidden");
-    }
+    // The user's message, as a right-aligned bubble.
+    const userRow = document.createElement("div");
+    userRow.className = "flex justify-end";
+    const userBubble = document.createElement("div");
+    userBubble.className =
+      "max-w-[85%] rounded-2xl rounded-tr-sm bg-indigo-500/15 border border-indigo-500/30 " +
+      "px-4 py-2.5 text-sm text-slate-100 whitespace-pre-wrap";
+    userBubble.textContent = turn.original_prompt;
+    userRow.appendChild(userBubble);
 
-    if (result.status !== "ok") {
-      outputNote.textContent = result.detail || "Bu sağlayıcı için henüz bir yanıt alınamadı.";
-      outputNote.classList.remove("hidden");
-      return;
-    }
+    // The AI's response.
+    const aiBlock = document.createElement("div");
+    aiBlock.className =
+      "rounded-2xl border border-base-600 bg-base-900/70 backdrop-blur-xl shadow-xl shadow-black/30 p-4 sm:p-5";
 
-    const looksLikeImageUrl =
-      result.provider === "dalle" &&
-      typeof result.output === "string" &&
-      /^https?:\/\//.test(result.output.trim());
-
-    if (looksLikeImageUrl) {
-      outputImage.src = result.output.trim();
-      outputImageWrap.classList.remove("hidden");
-    } else {
-      outputText.textContent = result.output || "(Sağlayıcı boş bir yanıt döndürdü.)";
-      outputText.classList.remove("hidden");
-    }
-  }
-
-  function showResult(result) {
-    hideAllPanels();
-
-    const meta = PROVIDER_META[result.provider] ?? {
-      label: result.provider,
+    const meta = PROVIDER_META[turn.provider] ?? {
+      label: turn.provider,
       emoji: "🤖",
       classes: "bg-slate-500/10 text-slate-300 border-slate-500/30",
     };
 
-    providerBadge.className = `inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-sm font-semibold ${meta.classes}`;
-    providerBadge.innerHTML = `<span>${meta.emoji}</span><span>${meta.label}</span>`;
+    const headerRow = document.createElement("div");
+    headerRow.className = "flex items-center justify-between gap-2 mb-3";
 
-    refinedPromptEl.textContent = result.refined_prompt;
-    reasoningEl.textContent = result.reasoning || "—";
-    reasoningWrap.classList.add("hidden"); // collapsed by default for every new result
-    reasoningToggleBtn.setAttribute("aria-expanded", "false");
-    renderOutput(result);
+    const badge = document.createElement("span");
+    badge.className = `inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs font-semibold ${meta.classes}`;
+    badge.innerHTML = `<span>${meta.emoji}</span><span>${meta.label}</span>`;
 
-    if (result.original_prompt) {
-      originalPromptEl.textContent = result.original_prompt;
-      originalPromptWrap.classList.remove("hidden");
-    } else {
-      originalPromptWrap.classList.add("hidden");
+    const detailsToggle = document.createElement("button");
+    detailsToggle.type = "button";
+    detailsToggle.title = "Optimize edilmiş prompt ve seçim gerekçesini göster/gizle";
+    detailsToggle.className =
+      "w-7 h-7 shrink-0 inline-flex items-center justify-center rounded-full border border-base-700 " +
+      "text-slate-500 hover:text-slate-200 hover:border-base-500 transition-colors leading-none text-sm";
+    detailsToggle.textContent = "⋯";
+
+    headerRow.append(badge, detailsToggle);
+
+    const detailsWrap = document.createElement("div");
+    detailsWrap.className = "hidden mb-3 space-y-2 animate-fadeUp";
+
+    const refinedHeaderRow = document.createElement("div");
+    refinedHeaderRow.className = "flex items-center justify-between";
+    const refinedLabel = document.createElement("h4");
+    refinedLabel.className = "text-[11px] font-semibold text-slate-500 uppercase tracking-wide";
+    refinedLabel.textContent = "Optimize Edilmiş Prompt";
+    const turnCopyBtn = document.createElement("button");
+    turnCopyBtn.type = "button";
+    turnCopyBtn.className = "text-[11px] text-slate-500 hover:text-indigo-300 transition-colors font-mono";
+    turnCopyBtn.textContent = "Kopyala";
+    turnCopyBtn.addEventListener("click", async () => {
+      try {
+        await navigator.clipboard.writeText(turn.refined_prompt);
+        const original = turnCopyBtn.textContent;
+        turnCopyBtn.textContent = "Kopyalandı ✓";
+        setTimeout(() => (turnCopyBtn.textContent = original), 1500);
+      } catch {
+        /* clipboard API unavailable — silently ignore */
+      }
+    });
+    refinedHeaderRow.append(refinedLabel, turnCopyBtn);
+
+    const refinedP = document.createElement("p");
+    refinedP.className =
+      "rounded-lg bg-base-950 border border-base-700 px-3 py-2 text-xs text-slate-300 font-mono whitespace-pre-wrap";
+    refinedP.textContent = turn.refined_prompt;
+
+    const reasoningLabel = document.createElement("h4");
+    reasoningLabel.className = "text-[11px] font-semibold text-slate-500 uppercase tracking-wide";
+    reasoningLabel.textContent = "Seçim Gerekçesi";
+
+    const reasoningP = document.createElement("p");
+    reasoningP.className = "rounded-lg bg-base-950 border border-base-700 px-3 py-2 text-xs text-slate-400";
+    reasoningP.textContent = turn.reasoning || "—";
+
+    detailsWrap.append(refinedHeaderRow, refinedP, reasoningLabel, reasoningP);
+
+    detailsToggle.addEventListener("click", () => {
+      const willShow = detailsWrap.classList.contains("hidden");
+      detailsWrap.classList.toggle("hidden", !willShow);
+      detailsToggle.setAttribute("aria-expanded", String(willShow));
+    });
+
+    const outputWrap = document.createElement("div");
+
+    const tag = STATUS_TAGS[turn.status];
+    if (tag) {
+      const tagSpan = document.createElement("span");
+      tagSpan.className = `inline-block mb-2 text-[11px] font-mono px-2 py-0.5 rounded-full border ${tag.classes}`;
+      tagSpan.textContent = tag.label;
+      outputWrap.appendChild(tagSpan);
     }
 
-    resultCard.classList.remove("hidden");
+    if (turn.status !== "ok") {
+      const note = document.createElement("div");
+      note.className =
+        "rounded-lg bg-amber-500/10 border border-amber-500/30 px-3 py-2.5 text-xs text-amber-200 leading-relaxed";
+      note.textContent = turn.detail || "Bu sağlayıcı için henüz bir yanıt alınamadı.";
+      outputWrap.appendChild(note);
+    } else {
+      const looksLikeImageUrl =
+        turn.provider === "dalle" &&
+        typeof turn.output === "string" &&
+        /^https?:\/\//.test(turn.output.trim());
+
+      if (looksLikeImageUrl) {
+        const imgWrap = document.createElement("div");
+        imgWrap.className = "rounded-lg overflow-hidden border border-base-700 bg-base-950";
+        const img = document.createElement("img");
+        img.className = "w-full h-auto";
+        img.alt = "Üretilen görsel";
+        img.src = turn.output.trim();
+        imgWrap.appendChild(img);
+        outputWrap.appendChild(imgWrap);
+      } else {
+        const textP = document.createElement("p");
+        textP.className = "text-sm text-slate-200 leading-relaxed whitespace-pre-wrap";
+        textP.textContent = turn.output || "(Sağlayıcı boş bir yanıt döndürdü.)";
+        outputWrap.appendChild(textP);
+      }
+    }
+
+    aiBlock.append(headerRow, detailsWrap, outputWrap);
+    wrap.append(userRow, aiBlock);
+    return wrap;
+  }
+
+  function renderConversation() {
+    conversationThread.innerHTML = "";
+    conversationTurns.forEach((turn) => {
+      conversationThread.appendChild(createTurnElement(turn));
+    });
+
+    const hasTurns = conversationTurns.length > 0;
+    emptyState.classList.toggle("hidden", hasTurns);
+    replyWrap.classList.toggle("hidden", !hasTurns);
   }
 
   // ======================================================================
@@ -725,14 +776,37 @@
       promptP.textContent = entry.original_prompt || entry.refined_prompt || "";
 
       item.append(row, promptP);
-      item.addEventListener("click", () => {
-        promptEl.value = entry.original_prompt || "";
-        showResult(entry);
-        promptEl.scrollIntoView({ behavior: "smooth", block: "start" });
-      });
+      item.addEventListener("click", () => openConversation(entry.conversation_id));
 
       historyList.appendChild(item);
     });
+  }
+
+  // Loads the full turn-by-turn thread for a past conversation (from the
+  // history sidebar) so the user can review it and keep replying to it.
+  async function openConversation(conversationId) {
+    hideError();
+    try {
+      const res = await fetch(`${HISTORY_ENDPOINT}/${conversationId}`, { headers: { ...authHeaders() } });
+      if (res.status === 401) {
+        logout("Oturumunuz sona erdi. Lütfen tekrar giriş yapın.");
+        return;
+      }
+      if (!res.ok) {
+        throw new Error("Konuşma yüklenemedi.");
+      }
+      const rows = await res.json();
+      const turns = rows.map(normalizeResponse).filter(Boolean);
+      if (turns.length === 0) {
+        throw new Error("Konuşma yüklenemedi.");
+      }
+      conversationTurns = turns;
+      currentConversationId = conversationId;
+      renderConversation();
+      conversationThread.scrollIntoView({ behavior: "smooth", block: "start" });
+    } catch (err) {
+      showError(err.message || "Konuşma yüklenemedi.");
+    }
   }
 
   clearHistoryBtn.addEventListener("click", async () => {
@@ -750,24 +824,32 @@
   });
 
   // ======================================================================
-  // Execute
+  // Execute — starting a new conversation, or replying within one
   // ======================================================================
-  async function routePrompt() {
-    const prompt = promptEl.value.trim();
+
+  // Shared by both the main "Çalıştır" button (new conversation) and the
+  // reply box (continuing conversationId). Appends the resulting turn to
+  // the thread on success.
+  async function submitPrompt(prompt, { isReply }) {
     if (!prompt) {
-      showError("Lütfen önce bir prompt yazın.");
-      promptEl.focus();
+      showError("Lütfen bir mesaj yazın.");
       return;
     }
 
-    setLoading(true);
-    hideAllPanels();
+    hideError();
+    const setBtnLoading = isReply ? setReplyLoading : setLoading;
+    setBtnLoading(true);
 
     try {
+      const body = { prompt };
+      if (isReply && currentConversationId) {
+        body.conversation_id = currentConversationId;
+      }
+
       const res = await fetch(EXECUTE_ENDPOINT, {
         method: "POST",
         headers: { "Content-Type": "application/json", ...authHeaders() },
-        body: JSON.stringify({ prompt }),
+        body: JSON.stringify(body),
       });
 
       if (res.status === 401) {
@@ -792,7 +874,16 @@
         throw new Error("Sunucudan beklenmeyen bir yanıt formatı geldi.");
       }
 
-      showResult(result);
+      currentConversationId = result.conversation_id;
+      conversationTurns.push(result);
+      renderConversation();
+
+      if (isReply) {
+        replyPromptEl.value = "";
+      } else {
+        promptEl.value = "";
+      }
+
       await fetchHistory(); // backend already persisted this run — pull the fresh list
     } catch (err) {
       const isNetworkError = err instanceof TypeError;
@@ -802,43 +893,57 @@
           : err.message
       );
     } finally {
-      setLoading(false);
+      setBtnLoading(false);
     }
   }
 
-  reasoningToggleBtn.addEventListener("click", () => {
-    const willShow = reasoningWrap.classList.contains("hidden");
-    reasoningWrap.classList.toggle("hidden", !willShow);
-    reasoningToggleBtn.setAttribute("aria-expanded", String(willShow));
-  });
-
-  copyBtn.addEventListener("click", async () => {
-    try {
-      await navigator.clipboard.writeText(refinedPromptEl.textContent);
-      const original = copyBtn.textContent;
-      copyBtn.textContent = "Kopyalandı ✓";
-      setTimeout(() => (copyBtn.textContent = original), 1500);
-    } catch {
-      /* clipboard API unavailable — silently ignore */
+  async function startNewConversation() {
+    const prompt = promptEl.value.trim();
+    if (!prompt) {
+      showError("Lütfen önce bir prompt yazın.");
+      promptEl.focus();
+      return;
     }
-  });
+    conversationTurns = [];
+    currentConversationId = null;
+    hideError();
+    renderConversation();
+    await submitPrompt(prompt, { isReply: false });
+  }
+
+  async function sendReply() {
+    const prompt = replyPromptEl.value.trim();
+    if (!prompt) {
+      replyPromptEl.focus();
+      return;
+    }
+    await submitPrompt(prompt, { isReply: true });
+  }
 
   clearBtn.addEventListener("click", () => {
     promptEl.value = "";
-    showEmpty();
+    conversationTurns = [];
+    currentConversationId = null;
+    hideError();
+    renderConversation();
     promptEl.focus();
   });
 
-  routeBtn.addEventListener("click", routePrompt);
+  routeBtn.addEventListener("click", startNewConversation);
   promptEl.addEventListener("keydown", (e) => {
-    if ((e.ctrlKey || e.metaKey) && e.key === "Enter") routePrompt();
+    if ((e.ctrlKey || e.metaKey) && e.key === "Enter") startNewConversation();
+  });
+
+  replyBtn.addEventListener("click", sendReply);
+  replyPromptEl.addEventListener("keydown", (e) => {
+    if ((e.ctrlKey || e.metaKey) && e.key === "Enter") sendReply();
   });
 
   // ======================================================================
   // Boot
   // ======================================================================
   setAuthMode("login");
-  showEmpty();
+  renderConversation();
 
   if (getToken()) {
     showAppRoot();
