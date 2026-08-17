@@ -1,0 +1,30 @@
+services:
+  - type: web
+    name: hubai-backend
+    runtime: python
+    plan: free
+    rootDir: backend
+    buildCommand: pip install -r requirements.txt
+    # --proxy-headers/--forwarded-allow-ips: Render sits behind a reverse
+    # proxy, so uvicorn needs these to see the real client IP (used by the
+    # rate limiter) instead of the proxy's IP for every request.
+    startCommand: uvicorn app.main:app --host 0.0.0.0 --port $PORT --proxy-headers --forwarded-allow-ips='*'
+    healthCheckPath: /health
+    envVars:
+      - key: GEMINI_API_KEY
+        sync: false
+      - key: GEMINI_MODEL
+        value: gemini-flash-lite-latest
+      - key: JWT_SECRET_KEY
+        generateValue: true
+      - key: JWT_EXPIRE_MINUTES
+        value: "10080"
+      - key: ALLOWED_ORIGINS
+        sync: false # set to your deployed frontend's origin(s) after it's up
+      - key: DAILY_GEMINI_CAP
+        value: "18"
+      # Optional: point at managed Postgres instead of the default local
+      # SQLite file (Render's disk is ephemeral on the free plan — SQLite
+      # data will NOT survive restarts/redeploys there).
+      # - key: DATABASE_URL
+      #   sync: false

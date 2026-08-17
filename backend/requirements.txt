@@ -6,8 +6,13 @@ google-genai>=1.0.0
 sqlalchemy>=2.0.0
 pyjwt>=2.9.0
 bcrypt>=4.0.0
+slowapi>=0.1.9
 
 openai>=1.0.0          # OpenAI + DALL-E — also requires OPENAI_API_KEY in .env
 
 # Optional — uncomment to enable Claude too. Also requires ANTHROPIC_API_KEY in .env.
 # anthropic>=0.40.0    # Claude
+
+# Optional — uncomment if DATABASE_URL points at Postgres instead of the
+# default local SQLite file (e.g. Render/Neon/Supabase Postgres).
+# psycopg[binary]>=3.2.0

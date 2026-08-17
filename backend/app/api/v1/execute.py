@@ -1,8 +1,10 @@
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Request
 from sqlalchemy.orm import Session
 
 from app.core.config import get_gemini_api_key, get_gemini_model
+from app.core.daily_cap import check_and_increment_daily_gemini_cap
 from app.core.deps import get_current_user
+from app.core.limiter import limiter
 from app.db.database import get_db
 from app.db.models import PromptHistory, User
 from app.schemas.route import ExecuteResponse, RouteRequest
@@ -13,13 +15,17 @@ router = APIRouter(prefix="/execute", tags=["execute"])
 
 
 @router.post("", response_model=ExecuteResponse)
+@limiter.limit("10/hour")
 async def execute_prompt(
+    request: Request,
     payload: RouteRequest,
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ) -> ExecuteResponse:
     """Route the prompt with Gemini, actually call the chosen provider, and
     save the run to the logged-in user's history."""
+    check_and_increment_daily_gemini_cap()
+
     try:
         api_key = get_gemini_api_key()
     except ValueError as exc:

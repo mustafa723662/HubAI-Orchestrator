@@ -39,3 +39,33 @@ def get_jwt_secret_key() -> str:
 
 def get_jwt_expire_minutes() -> int:
     return int(os.getenv("JWT_EXPIRE_MINUTES", "10080"))  # 7 days
+
+
+def get_allowed_origins() -> list[str]:
+    """Comma-separated list of allowed frontend origins for CORS.
+
+    Defaults to "*" (dev convenience — matches local file:// / any port
+    testing). Set ALLOWED_ORIGINS in production, e.g.
+    "https://your-frontend.netlify.app,https://your-frontend.vercel.app".
+    """
+    raw = os.getenv("ALLOWED_ORIGINS", "*")
+    origins = [origin.strip() for origin in raw.split(",") if origin.strip()]
+    return origins or ["*"]
+
+
+def get_database_url() -> str:
+    """SQLAlchemy connection string. Defaults to a local SQLite file so
+    nothing changes for local dev; set DATABASE_URL in production to point
+    at Postgres etc. (e.g. Render's managed Postgres, Neon, Supabase)."""
+    return os.getenv("DATABASE_URL", "")
+
+
+def get_daily_gemini_cap() -> int:
+    """Soft cap on total /execute calls per day, shared across all users.
+
+    Protects the Gemini free-tier daily quota (currently 20 req/day per
+    model) from being silently exhausted by real traffic — once hit,
+    /execute fails fast with a clear message instead of forwarding a raw
+    429 from Gemini. Set below your actual Gemini quota with some buffer.
+    """
+    return int(os.getenv("DAILY_GEMINI_CAP", "18"))
