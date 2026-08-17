@@ -154,14 +154,25 @@
   <!-- ===================== Main app (shown after login) ===================== -->
   <div id="appRoot" class="hidden min-h-screen flex flex-col items-center px-4 py-10 sm:py-16">
 
-    <div class="w-full max-w-5xl flex items-center justify-end gap-4 mb-4 text-xs font-mono">
-      <span class="flex items-center gap-1.5 text-slate-500">
-        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0A17.933 17.933 0 0112 21.75c-2.676 0-5.216-.584-7.499-1.632z" />
-        </svg>
-        <span id="usernameLabel"></span>
-      </span>
-      <button id="logoutBtn" class="text-slate-500 hover:text-red-300 transition-colors">Çıkış Yap</button>
+    <div class="w-full max-w-5xl flex items-center justify-end mb-4">
+      <div class="flex items-center gap-2 rounded-full border border-base-600 bg-base-900/70 backdrop-blur-xl py-1.5 pl-1.5 pr-2 shadow-lg shadow-black/20 animate-fadeUp">
+        <div
+          id="userAvatar"
+          class="w-7 h-7 shrink-0 rounded-full bg-gradient-to-br from-indigo-500 to-violet-500 flex items-center justify-center text-xs font-bold text-white"
+        ></div>
+        <span id="usernameLabel" class="text-sm font-medium text-slate-200"></span>
+        <span class="w-px h-4 bg-base-700 mx-0.5"></span>
+        <button
+          id="logoutBtn"
+          type="button"
+          title="Çıkış Yap"
+          class="w-7 h-7 shrink-0 rounded-full flex items-center justify-center text-slate-500 hover:text-red-300 hover:bg-red-500/10 transition-colors"
+        >
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 9V5.25A2.25 2.25 0 0013.5 3h-6a2.25 2.25 0 00-2.25 2.25v13.5A2.25 2.25 0 007.5 21h6a2.25 2.25 0 002.25-2.25V15M12 9l3 3m0 0l-3 3m3-3H3" />
+          </svg>
+        </button>
+      </div>
     </div>
 
     <!-- Header -->
@@ -192,7 +203,7 @@
           id="prompt"
           rows="5"
           placeholder="Örn: Yağmurlu bir gece Tokyo sokaklarını çizen, neon ışıklı, sinematik bir görsel istiyorum..."
-          class="w-full resize-none rounded-xl bg-base-950 border border-base-600 text-slate-100 placeholder-slate-600
+          class="w-full resize-none rounded-xl bg-base-950 border border-base-600 text-slate-100 placeholder-slate-400
                  px-4 py-3 text-sm sm:text-base outline-none transition-shadow duration-200 font-mono"
         ></textarea>
 
@@ -218,11 +229,6 @@
             Temizle
           </button>
         </div>
-
-        <p class="mt-3 text-xs text-slate-600 font-mono">
-          POST <span class="text-slate-500">/api/v1/execute</span> → <span id="endpointLabel" class="text-slate-500"></span>
-          <span class="text-slate-700">· Bearer token ile korumalı</span>
-        </p>
       </div>
 
       <!-- Error box -->
@@ -249,7 +255,7 @@
             id="replyPrompt"
             rows="2"
             placeholder="Takip sorunuzu yazın..."
-            class="flex-1 resize-none rounded-xl bg-base-950 border border-base-600 text-slate-100 placeholder-slate-600
+            class="flex-1 resize-none rounded-xl bg-base-950 border border-base-600 text-slate-100 placeholder-slate-400
                    px-4 py-2.5 text-sm outline-none transition-shadow duration-200 font-mono"
           ></textarea>
           <button
@@ -276,9 +282,6 @@
         <p class="text-sm text-slate-500">Sohbet burada görünecek. Yukarıya bir prompt yazıp <span class="text-slate-400">Çalıştır</span>'a basın.</p>
       </div>
 
-      <footer class="mt-10 text-center text-xs text-slate-700 font-mono">
-        HubAI Orchestrator · FastAPI + Gemini Flash routing
-      </footer>
     </main>
 
     <!-- History panel: below main on mobile, pinned to the left on desktop -->
@@ -352,6 +355,7 @@
   const authBtnSpinner = document.getElementById("authBtnSpinner");
   const authBtnLabel = document.getElementById("authBtnLabel");
   const usernameLabel = document.getElementById("usernameLabel");
+  const userAvatar = document.getElementById("userAvatar");
   const logoutBtn = document.getElementById("logoutBtn");
 
   // ---- DOM refs: main app -----------------------------------------------
@@ -370,12 +374,9 @@
   const replyBtn = document.getElementById("replyBtn");
   const replyBtnSpinner = document.getElementById("replyBtnSpinner");
   const replyBtnLabel = document.getElementById("replyBtnLabel");
-  const endpointLabel = document.getElementById("endpointLabel");
   const historyList = document.getElementById("historyList");
   const historyEmpty = document.getElementById("historyEmpty");
   const clearHistoryBtn = document.getElementById("clearHistoryBtn");
-
-  endpointLabel.textContent = EXECUTE_ENDPOINT;
 
   // Current multi-turn conversation, client-side mirror of the backend
   // thread. Each entry: {provider, refined_prompt, reasoning,
@@ -417,7 +418,9 @@
     authGate.classList.add("hidden");
     appRoot.classList.remove("hidden");
     const user = getStoredUser();
-    usernameLabel.textContent = user?.username ?? "";
+    const username = user?.username ?? "";
+    usernameLabel.textContent = username;
+    userAvatar.textContent = username.charAt(0).toUpperCase();
   }
 
   function showAuthGate(message) {
