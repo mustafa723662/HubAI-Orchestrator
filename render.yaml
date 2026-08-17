@@ -20,7 +20,7 @@ services:
       - key: JWT_EXPIRE_MINUTES
         value: "10080"
       - key: ALLOWED_ORIGINS
-        sync: false # set to your deployed frontend's origin(s) after it's up
+        value: https://hubai-frontend.onrender.com
       - key: DAILY_GEMINI_CAP
         value: "18"
       # Optional: point at managed Postgres instead of the default local
@@ -28,3 +28,16 @@ services:
       # data will NOT survive restarts/redeploys there).
       # - key: DATABASE_URL
       #   sync: false
+
+  - type: web
+    name: hubai-frontend
+    runtime: static
+    plan: free
+    rootDir: frontend
+    buildCommand: "echo 'no build needed'"
+    staticPublishPath: .
+    pullRequestPreviewsEnabled: false
+    routes:
+      - type: rewrite
+        source: /*
+        destination: /index.html
