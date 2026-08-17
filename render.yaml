@@ -32,7 +32,6 @@ services:
   - type: web
     name: hubai-frontend
     runtime: static
-    plan: free
     rootDir: frontend
     buildCommand: "echo 'no build needed'"
     staticPublishPath: .
