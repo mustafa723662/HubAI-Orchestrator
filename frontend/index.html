@@ -342,11 +342,12 @@
 
 <script>
   // ---- Config ----------------------------------------------------------
-  // Local dev default. After deploying the backend (e.g. to Render), change
-  // this to that service's real URL, e.g. "https://hubai-backend.onrender.com"
-  // — and add this frontend's deployed origin to ALLOWED_ORIGINS in the
-  // backend's env vars, or CORS will block it.
-  const API_BASE = "http://127.0.0.1:9999";
+  // Auto-picks the local dev backend when this page itself is served from
+  // localhost/127.0.0.1, and the deployed Render backend otherwise — so the
+  // same file works for local testing and the deployed frontend without
+  // editing this line back and forth.
+  const IS_LOCAL_HOST = ["localhost", "127.0.0.1"].includes(window.location.hostname);
+  const API_BASE = IS_LOCAL_HOST ? "http://127.0.0.1:9999" : "https://hubai-backend.onrender.com";
   const API_V1 = `${API_BASE}/api/v1`;
   const EXECUTE_ENDPOINT = `${API_V1}/execute`;
   const HISTORY_ENDPOINT = `${API_V1}/history`;
