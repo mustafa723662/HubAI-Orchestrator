@@ -65,7 +65,12 @@ def _get_user_provider_key(db: Session, user_id: int, provider: str) -> str | No
     )
     if row is None:
         return None
-    return decrypt_value(row.encrypted_key)
+    try:
+        return decrypt_value(row.encrypted_key)
+    except ValueError:
+        # API_KEY_ENCRYPTION_KEY missing/misconfigured — degrade to "no
+        # user key" rather than crashing the whole /execute request.
+        return None
 
 
 @router.post("", response_model=ExecuteResponse)

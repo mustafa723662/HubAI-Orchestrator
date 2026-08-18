@@ -36,7 +36,10 @@ def list_api_keys(
         else:
             # Masked previews aren't stored — decrypting here (GET is
             # infrequent) is simpler than persisting a redundant field.
-            plaintext = decrypt_value(row.encrypted_key)
+            try:
+                plaintext = decrypt_value(row.encrypted_key)
+            except ValueError as exc:
+                raise HTTPException(status_code=status.HTTP_503_SERVICE_UNAVAILABLE, detail=str(exc)) from exc
             result.append(
                 ApiKeyStatus(
                     provider=provider,
@@ -61,7 +64,10 @@ def upsert_api_key(
     if not api_key:
         raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail="API anahtarı boş olamaz.")
 
-    encrypted = encrypt_value(api_key)
+    try:
+        encrypted = encrypt_value(api_key)
+    except ValueError as exc:
+        raise HTTPException(status_code=status.HTTP_503_SERVICE_UNAVAILABLE, detail=str(exc)) from exc
     row = _get_row(db, current_user.id, provider)
     if row is None:
         row = UserApiKey(user_id=current_user.id, provider=provider, encrypted_key=encrypted)
