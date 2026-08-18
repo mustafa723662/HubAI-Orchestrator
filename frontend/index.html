@@ -159,13 +159,18 @@
           id="settingsBtn"
           type="button"
           title="Ayarlar / API Anahtarlarım"
-          class="flex items-center gap-2 rounded-full pl-0 pr-2 py-1 -my-1 hover:bg-base-700/50 transition-colors"
+          aria-haspopup="true"
+          aria-expanded="false"
+          class="flex items-center gap-2 rounded-full pl-0 pr-2.5 py-1 -my-1 cursor-pointer hover:bg-base-700/60 transition-colors"
         >
           <span
             id="userAvatar"
             class="w-7 h-7 shrink-0 rounded-full bg-gradient-to-br from-indigo-500 to-violet-500 flex items-center justify-center text-xs font-bold text-white"
           ></span>
           <span id="usernameLabel" class="text-sm font-medium text-slate-200"></span>
+          <svg id="settingsChevron" class="w-3.5 h-3.5 shrink-0 text-slate-500 transition-transform duration-200" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M19.5 8.25l-7.5 7.5-7.5-7.5" />
+          </svg>
         </button>
         <span class="w-px h-4 bg-base-700 mx-0.5"></span>
         <button
@@ -327,7 +332,7 @@
           </svg>
         </button>
       </div>
-      <p class="text-xs text-slate-500 mb-6 leading-relaxed">
+      <p class="text-xs text-slate-400 mb-6 leading-relaxed">
         İstekleri kendi hesabınızdan çalıştırmak için API anahtarlarınızı güvenle kaydedin.
       </p>
 
@@ -335,12 +340,12 @@
         <!-- OpenAI -->
         <div>
           <div class="flex items-center justify-between mb-1.5">
-            <label for="openaiKeyInput" class="text-xs font-semibold text-slate-300">OpenAI API Key <span class="text-slate-600 font-normal">(DALL·E dahil)</span></label>
+            <label for="openaiKeyInput" class="text-xs font-semibold text-slate-300">OpenAI API Key</label>
             <span id="openaiKeyStatus" class="text-[11px] font-mono text-slate-600"></span>
           </div>
           <div class="flex gap-2">
-            <input id="openaiKeyInput" type="password" autocomplete="off" placeholder="sk-..." class="flex-1 min-w-0 rounded-xl bg-base-950 border border-base-600 text-slate-100 placeholder-slate-500 px-3 py-2 text-sm outline-none transition-shadow duration-200" />
-            <button id="openaiKeySaveBtn" type="button" class="shrink-0 rounded-xl bg-indigo-500 hover:bg-indigo-400 text-white text-xs font-semibold px-3.5 transition-colors">Kaydet</button>
+            <input id="openaiKeyInput" type="password" autocomplete="off" placeholder="sk-... (DALL·E dahil)" class="flex-1 min-w-0 h-10 rounded-xl bg-base-950 border border-base-600 text-slate-100 placeholder-slate-500 px-3 text-sm outline-none transition-shadow duration-200" />
+            <button id="openaiKeySaveBtn" type="button" class="shrink-0 h-10 rounded-xl bg-indigo-500 hover:bg-indigo-400 text-white text-xs font-semibold px-3.5 transition-colors">Kaydet</button>
           </div>
           <button id="openaiKeyRemoveBtn" type="button" class="hidden mt-1.5 text-[11px] text-slate-600 hover:text-red-300 transition-colors">Anahtarı kaldır</button>
         </div>
@@ -352,8 +357,8 @@
             <span id="claudeKeyStatus" class="text-[11px] font-mono text-slate-600"></span>
           </div>
           <div class="flex gap-2">
-            <input id="claudeKeyInput" type="password" autocomplete="off" placeholder="sk-ant-..." class="flex-1 min-w-0 rounded-xl bg-base-950 border border-base-600 text-slate-100 placeholder-slate-500 px-3 py-2 text-sm outline-none transition-shadow duration-200" />
-            <button id="claudeKeySaveBtn" type="button" class="shrink-0 rounded-xl bg-indigo-500 hover:bg-indigo-400 text-white text-xs font-semibold px-3.5 transition-colors">Kaydet</button>
+            <input id="claudeKeyInput" type="password" autocomplete="off" placeholder="sk-ant-..." class="flex-1 min-w-0 h-10 rounded-xl bg-base-950 border border-base-600 text-slate-100 placeholder-slate-500 px-3 text-sm outline-none transition-shadow duration-200" />
+            <button id="claudeKeySaveBtn" type="button" class="shrink-0 h-10 rounded-xl bg-indigo-500 hover:bg-indigo-400 text-white text-xs font-semibold px-3.5 transition-colors">Kaydet</button>
           </div>
           <button id="claudeKeyRemoveBtn" type="button" class="hidden mt-1.5 text-[11px] text-slate-600 hover:text-red-300 transition-colors">Anahtarı kaldır</button>
         </div>
@@ -415,6 +420,7 @@
 
   // ---- DOM refs: settings modal (BYOK API keys) --------------------------
   const settingsBtn = document.getElementById("settingsBtn");
+  const settingsChevron = document.getElementById("settingsChevron");
   const settingsModal = document.getElementById("settingsModal");
   const settingsCloseBtn = document.getElementById("settingsCloseBtn");
   const settingsMessage = document.getElementById("settingsMessage");
@@ -624,7 +630,7 @@
       fields.status.className = "text-[11px] font-mono text-emerald-400";
       fields.removeBtn.classList.remove("hidden");
     } else {
-      fields.input.placeholder = provider === "openai" ? "sk-..." : "sk-ant-...";
+      fields.input.placeholder = provider === "openai" ? "sk-... (DALL·E dahil)" : "sk-ant-...";
       fields.status.textContent = "Kayıtlı değil";
       fields.status.className = "text-[11px] font-mono text-slate-600";
       fields.removeBtn.classList.add("hidden");
@@ -649,11 +655,15 @@
   function openSettingsModal() {
     hideSettingsMessage();
     settingsModal.classList.remove("hidden");
+    settingsChevron.classList.add("rotate-180");
+    settingsBtn.setAttribute("aria-expanded", "true");
     fetchApiKeyStatuses();
   }
 
   function closeSettingsModal() {
     settingsModal.classList.add("hidden");
+    settingsChevron.classList.remove("rotate-180");
+    settingsBtn.setAttribute("aria-expanded", "false");
   }
 
   async function saveApiKey(provider) {
