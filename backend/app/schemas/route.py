@@ -20,7 +20,7 @@ class RouteResponse(BaseModel):
     original_prompt: str
 
 
-ExecuteStatus = Literal["ok", "provider_not_configured", "unsupported_provider"]
+ExecuteStatus = Literal["ok", "provider_not_configured", "unsupported_provider", "fallback"]
 
 
 class ExecuteResponse(BaseModel):
@@ -33,7 +33,8 @@ class ExecuteResponse(BaseModel):
         default=None, description="Provider's raw output (text, or an image URL for dalle)."
     )
     detail: str | None = Field(
-        default=None, description="Explanation when status isn't 'ok'."
+        default=None,
+        description="Explanation when status isn't 'ok' (also set on 'fallback', explaining the substitution).",
     )
     conversation_id: str = Field(
         description="Pass this back as conversation_id on the next call to continue this chat."

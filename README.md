@@ -40,7 +40,9 @@ Accounts and prompt history are stored in a local SQLite database (`backend/huba
 | `claude` | ⏳ Wired up, needs `ANTHROPIC_API_KEY` + `pip install anthropic` |
 | `midjourney` | ❌ No official public API — the router can still recommend it, but `/execute` can't call it |
 
-When a provider isn't configured, `/execute` returns `status: "provider_not_configured"` (or `"unsupported_provider"` for Midjourney) instead of failing the whole request — `output` is `null` and `detail` explains what's missing.
+When a provider isn't configured, `/execute` doesn't just dead-end:
+- **`openai` / `claude`** (text providers): automatically falls back to Gemini so the user still gets a real answer. `status` is `"fallback"`, `provider` still shows the originally-routed provider (for transparency), and `detail` explains the substitution.
+- **`dalle` / `midjourney`** (image providers): no fallback — Gemini's text reply isn't an image URL, so substituting it would render a broken image instead of a clean message. `status` is `"provider_not_configured"` / `"unsupported_provider"`, `output` is `null`, and `detail` explains what's missing.
 
 ## Setup
 

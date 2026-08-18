@@ -16,6 +16,13 @@ from app.services.providers import PROVIDER_HANDLERS, ProviderNotConfigured, Pro
 
 router = APIRouter(prefix="/execute", tags=["execute"])
 
+# Providers whose output is plain text — safe to substitute with a Gemini
+# answer if the chosen provider turns out to be unconfigured, so the user
+# still gets a real response instead of a dead end. Image providers (dalle)
+# are deliberately excluded: Gemini's text reply is not an image URL, and
+# rendering it as one would show a broken image instead of a clean message.
+TEXT_FALLBACK_PROVIDERS = {"openai", "claude"}
+
 
 def _load_conversation_turns(db: Session, user_id: int, conversation_id: str) -> list[dict]:
     """Reconstruct a generic [{role, content}, ...] turn list (oldest first)
@@ -81,8 +88,24 @@ async def execute_prompt(
     try:
         output = await handler(decision.refined_prompt, history_turns)
     except ProviderNotConfigured as exc:
-        run_status = "provider_not_configured"
-        detail = str(exc)
+        original_detail = str(exc)
+        if decision.provider in TEXT_FALLBACK_PROVIDERS:
+            try:
+                output = await PROVIDER_HANDLERS["gemini"](decision.refined_prompt, history_turns)
+                run_status = "fallback"
+                detail = (
+                    f"{decision.provider} yapılandırılmadığı için yanıt otomatik olarak "
+                    f"Gemini ile üretildi. ({original_detail})"
+                )
+            except Exception:
+                # Gemini fallback itself failed (e.g. transient upstream
+                # error) — fall back further to a clean "not configured"
+                # message rather than a hard 502.
+                run_status = "provider_not_configured"
+                detail = original_detail
+        else:
+            run_status = "provider_not_configured"
+            detail = original_detail
     except ProviderUnsupported as exc:
         run_status = "unsupported_provider"
         detail = str(exc)

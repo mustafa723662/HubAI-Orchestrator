@@ -337,6 +337,7 @@
 
   const STATUS_TAGS = {
     ok: { label: "Başarılı", classes: "bg-emerald-500/10 text-emerald-300 border-emerald-500/30" },
+    fallback: { label: "Gemini ile yanıtlandı", classes: "bg-blue-500/10 text-blue-300 border-blue-500/30" },
     provider_not_configured: { label: "Yapılandırılmadı", classes: "bg-amber-500/10 text-amber-300 border-amber-500/30" },
     unsupported_provider: { label: "Desteklenmiyor", classes: "bg-slate-500/10 text-slate-400 border-slate-500/30" },
   };
@@ -662,13 +663,22 @@
       outputWrap.appendChild(tagSpan);
     }
 
-    if (turn.status !== "ok") {
+    const hasRealOutput = turn.status === "ok" || turn.status === "fallback";
+
+    if (!hasRealOutput) {
       const note = document.createElement("div");
       note.className =
         "rounded-lg bg-amber-500/10 border border-amber-500/30 px-3 py-2.5 text-xs text-amber-200 leading-relaxed";
       note.textContent = turn.detail || "Bu sağlayıcı için henüz bir yanıt alınamadı.";
       outputWrap.appendChild(note);
     } else {
+      if (turn.status === "fallback" && turn.detail) {
+        const fallbackNote = document.createElement("p");
+        fallbackNote.className = "text-[11px] text-slate-500 mb-2 leading-relaxed";
+        fallbackNote.textContent = turn.detail;
+        outputWrap.appendChild(fallbackNote);
+      }
+
       const looksLikeImageUrl =
         turn.provider === "dalle" &&
         typeof turn.output === "string" &&
