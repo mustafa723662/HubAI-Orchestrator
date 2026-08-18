@@ -7,9 +7,10 @@ from sqlalchemy.orm import Session
 from app.core.config import get_gemini_api_key, get_gemini_model
 from app.core.daily_cap import check_and_increment_daily_gemini_cap
 from app.core.deps import get_current_user
+from app.core.encryption import decrypt_value
 from app.core.limiter import limiter
 from app.db.database import get_db
-from app.db.models import PromptHistory, User
+from app.db.models import PromptHistory, User, UserApiKey
 from app.schemas.route import ExecuteResponse, RouteRequest
 from app.services.gemini_router import route_with_gemini
 from app.services.providers import PROVIDER_HANDLERS, ProviderNotConfigured, ProviderUnsupported
@@ -22,6 +23,11 @@ router = APIRouter(prefix="/execute", tags=["execute"])
 # are deliberately excluded: Gemini's text reply is not an image URL, and
 # rendering it as one would show a broken image instead of a clean message.
 TEXT_FALLBACK_PROVIDERS = {"openai", "claude"}
+
+# Maps a routed provider to the BYOK key a user could have saved for it.
+# "dalle" shares OpenAI's key; gemini/midjourney have no BYOK entry (Gemini
+# is system-managed, Midjourney has no API at all).
+BYOK_LOOKUP = {"openai": "openai", "dalle": "openai", "claude": "claude"}
 
 
 def _load_conversation_turns(db: Session, user_id: int, conversation_id: str) -> list[dict]:
@@ -44,6 +50,24 @@ def _load_conversation_turns(db: Session, user_id: int, conversation_id: str) ->
     return turns
 
 
+def _get_user_provider_key(db: Session, user_id: int, provider: str) -> str | None:
+    """The logged-in user's own decrypted BYOK key for `provider`, if they
+    have one saved and it decrypts cleanly. None means "use the system key
+    (or fall back)" — never raises."""
+    byok_provider = BYOK_LOOKUP.get(provider)
+    if byok_provider is None:
+        return None
+
+    row = db.scalar(
+        select(UserApiKey).where(
+            UserApiKey.user_id == user_id, UserApiKey.provider == byok_provider
+        )
+    )
+    if row is None:
+        return None
+    return decrypt_value(row.encrypted_key)
+
+
 @router.post("", response_model=ExecuteResponse)
 @limiter.limit("10/hour")
 async def execute_prompt(
@@ -57,6 +81,11 @@ async def execute_prompt(
 
     Pass `conversation_id` (from a previous response) to continue that
     conversation with full prior context; omit it to start a new one.
+
+    If the user has their own API key saved for the routed provider (see
+    /api/v1/api-keys), it's used instead of the system key. Otherwise this
+    falls back to the system key if configured, and finally to the Gemini
+    fallback (see TEXT_FALLBACK_PROVIDERS) if neither exists.
     """
     check_and_increment_daily_gemini_cap()
 
@@ -68,25 +97,26 @@ async def execute_prompt(
     )
 
     try:
-        api_key = get_gemini_api_key()
+        gemini_key = get_gemini_api_key()
     except ValueError as exc:
         raise HTTPException(status_code=503, detail=str(exc)) from exc
 
     try:
         decision = await route_with_gemini(
-            payload.prompt, api_key, get_gemini_model(), history_turns
+            payload.prompt, gemini_key, get_gemini_model(), history_turns
         )
     except Exception as exc:
         raise HTTPException(status_code=502, detail=f"Gemini routing failed: {exc}") from exc
 
     handler = PROVIDER_HANDLERS[decision.provider]
+    user_provider_key = _get_user_provider_key(db, current_user.id, decision.provider)
 
     output: str | None = None
     detail: str | None = None
     run_status: str = "ok"
 
     try:
-        output = await handler(decision.refined_prompt, history_turns)
+        output = await handler(decision.refined_prompt, history_turns, user_provider_key)
     except ProviderNotConfigured as exc:
         original_detail = str(exc)
         if decision.provider in TEXT_FALLBACK_PROVIDERS:

@@ -5,6 +5,7 @@ from slowapi import _rate_limit_exceeded_handler
 from slowapi.errors import RateLimitExceeded
 from slowapi.middleware import SlowAPIMiddleware
 
+from app.api.v1.api_keys import router as api_keys_router
 from app.api.v1.auth import router as auth_router
 from app.api.v1.execute import router as execute_router
 from app.api.v1.history import router as history_router
@@ -43,6 +44,7 @@ app.include_router(auth_router, prefix="/api/v1")
 app.include_router(route_router, prefix="/api/v1")
 app.include_router(execute_router, prefix="/api/v1")
 app.include_router(history_router, prefix="/api/v1")
+app.include_router(api_keys_router, prefix="/api/v1")
 
 
 @app.get("/health")

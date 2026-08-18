@@ -19,6 +19,13 @@ services:
         generateValue: true
       - key: JWT_EXPIRE_MINUTES
         value: "10080"
+      # Fernet key encrypting users' own BYOK provider API keys at rest.
+      # Not auto-generated: it must be a valid Fernet key (32 url-safe
+      # base64 bytes), which Render's generateValue doesn't guarantee.
+      # Generate one with:
+      #   python -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())"
+      - key: API_KEY_ENCRYPTION_KEY
+        sync: false
       - key: ALLOWED_ORIGINS
         value: https://hubai-frontend.onrender.com
       - key: DAILY_GEMINI_CAP

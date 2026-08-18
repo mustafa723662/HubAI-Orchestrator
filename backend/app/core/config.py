@@ -69,3 +69,14 @@ def get_daily_gemini_cap() -> int:
     429 from Gemini. Set below your actual Gemini quota with some buffer.
     """
     return int(os.getenv("DAILY_GEMINI_CAP", "18"))
+
+
+def get_encryption_key() -> str:
+    """Fernet key used to encrypt user-supplied BYOK provider API keys at
+    rest. Generate one with:
+    python -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())"
+    """
+    key = os.getenv("API_KEY_ENCRYPTION_KEY")
+    if not key:
+        raise ValueError("API_KEY_ENCRYPTION_KEY is not set. Add it to backend/.env")
+    return key

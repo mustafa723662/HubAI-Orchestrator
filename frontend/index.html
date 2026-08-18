@@ -162,6 +162,17 @@
         <span id="usernameLabel" class="text-sm font-medium text-slate-200"></span>
         <span class="w-px h-4 bg-base-700 mx-0.5"></span>
         <button
+          id="settingsBtn"
+          type="button"
+          title="Ayarlar / API Anahtarlarım"
+          class="w-7 h-7 shrink-0 rounded-full flex items-center justify-center text-slate-500 hover:text-slate-200 hover:bg-base-700/60 transition-colors"
+        >
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M10.343 3.94c.09-.542.56-.94 1.11-.94h1.093c.55 0 1.02.398 1.11.94l.149.894c.07.424.384.764.78.93.398.164.855.142 1.205-.108l.737-.527a1.125 1.125 0 011.45.12l.773.774c.39.389.44 1.002.12 1.45l-.527.737c-.25.35-.272.806-.107 1.204.165.397.505.71.93.78l.893.15c.543.09.94.56.94 1.109v1.094c0 .55-.397 1.02-.94 1.11l-.893.149c-.425.07-.765.383-.93.78-.165.398-.143.854.107 1.204l.527.738c.32.447.269 1.06-.12 1.45l-.774.773a1.125 1.125 0 01-1.449.12l-.738-.527c-.35-.25-.806-.272-1.203-.107-.397.165-.71.505-.781.929l-.149.894c-.09.542-.56.94-1.11.94h-1.094c-.55 0-1.019-.398-1.11-.94l-.148-.894c-.071-.424-.384-.764-.781-.93-.398-.164-.854-.142-1.204.108l-.738.527c-.447.32-1.06.269-1.45-.12l-.773-.774a1.125 1.125 0 01-.12-1.45l.527-.737c.25-.35.273-.806.108-1.204-.165-.397-.505-.71-.93-.78l-.894-.15c-.542-.09-.94-.56-.94-1.109v-1.094c0-.55.398-1.02.94-1.11l.894-.149c.424-.07.765-.383.93-.78.165-.398.143-.854-.108-1.204l-.526-.738a1.125 1.125 0 01.12-1.45l.773-.773a1.125 1.125 0 011.45-.12l.737.527c.35.25.807.272 1.204.107.397-.165.71-.505.78-.929l.15-.894z" />
+            <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+          </svg>
+        </button>
+        <button
           id="logoutBtn"
           type="button"
           title="Çıkış Yap"
@@ -309,6 +320,53 @@
     </div>
   </div>
 
+  <!-- ===================== Settings modal (BYOK API keys) ===================== -->
+  <div id="settingsModal" class="hidden fixed inset-0 z-50 flex items-center justify-center px-4 py-10 bg-black/60 backdrop-blur-sm">
+    <div class="w-full max-w-md rounded-2xl border border-base-600 bg-base-900 shadow-2xl shadow-black/50 p-6 animate-fadeUp max-h-full overflow-y-auto">
+      <div class="flex items-start justify-between mb-1">
+        <h2 class="text-lg font-bold text-white">API Anahtarlarım</h2>
+        <button id="settingsCloseBtn" type="button" class="text-slate-500 hover:text-slate-200 transition-colors -mt-1 -mr-1 p-1">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+          </svg>
+        </button>
+      </div>
+      <p class="text-xs text-slate-500 mb-6 leading-relaxed">
+        Kendi API anahtarlarınızı ekleyerek OpenAI ve Claude isteklerini doğrudan kendi hesabınız üzerinden çalıştırabilirsiniz. Anahtarlarınız şifrelenerek saklanır ve bir daha asla düz metin olarak gösterilmez.
+      </p>
+
+      <div class="space-y-6" id="apiKeyFields">
+        <!-- OpenAI -->
+        <div>
+          <div class="flex items-center justify-between mb-1.5">
+            <label for="openaiKeyInput" class="text-xs font-semibold text-slate-300">OpenAI API Key <span class="text-slate-600 font-normal">(DALL·E dahil)</span></label>
+            <span id="openaiKeyStatus" class="text-[11px] font-mono text-slate-600"></span>
+          </div>
+          <div class="flex gap-2">
+            <input id="openaiKeyInput" type="password" autocomplete="off" placeholder="sk-..." class="flex-1 min-w-0 rounded-xl bg-base-950 border border-base-600 text-slate-100 placeholder-slate-500 px-3 py-2 text-sm outline-none transition-shadow duration-200" />
+            <button id="openaiKeySaveBtn" type="button" class="shrink-0 rounded-xl bg-indigo-500 hover:bg-indigo-400 text-white text-xs font-semibold px-3.5 transition-colors">Kaydet</button>
+          </div>
+          <button id="openaiKeyRemoveBtn" type="button" class="hidden mt-1.5 text-[11px] text-slate-600 hover:text-red-300 transition-colors">Anahtarı kaldır</button>
+        </div>
+
+        <!-- Claude -->
+        <div>
+          <div class="flex items-center justify-between mb-1.5">
+            <label for="claudeKeyInput" class="text-xs font-semibold text-slate-300">Claude (Anthropic) API Key</label>
+            <span id="claudeKeyStatus" class="text-[11px] font-mono text-slate-600"></span>
+          </div>
+          <div class="flex gap-2">
+            <input id="claudeKeyInput" type="password" autocomplete="off" placeholder="sk-ant-..." class="flex-1 min-w-0 rounded-xl bg-base-950 border border-base-600 text-slate-100 placeholder-slate-500 px-3 py-2 text-sm outline-none transition-shadow duration-200" />
+            <button id="claudeKeySaveBtn" type="button" class="shrink-0 rounded-xl bg-indigo-500 hover:bg-indigo-400 text-white text-xs font-semibold px-3.5 transition-colors">Kaydet</button>
+          </div>
+          <button id="claudeKeyRemoveBtn" type="button" class="hidden mt-1.5 text-[11px] text-slate-600 hover:text-red-300 transition-colors">Anahtarı kaldır</button>
+        </div>
+      </div>
+
+      <p id="settingsMessage" class="hidden mt-5 text-xs rounded-lg px-3 py-2 leading-relaxed"></p>
+    </div>
+  </div>
+
 <script>
   // ---- Config ----------------------------------------------------------
   // Auto-picks the local dev backend when this page itself is served from
@@ -322,6 +380,7 @@
   const HISTORY_ENDPOINT = `${API_V1}/history`;
   const LOGIN_ENDPOINT = `${API_V1}/auth/login`;
   const REGISTER_ENDPOINT = `${API_V1}/auth/register`;
+  const API_KEYS_ENDPOINT = `${API_V1}/api-keys`;
 
   const TOKEN_KEY = "hubai_token";
   const USER_KEY = "hubai_user";
@@ -357,6 +416,26 @@
   const usernameLabel = document.getElementById("usernameLabel");
   const userAvatar = document.getElementById("userAvatar");
   const logoutBtn = document.getElementById("logoutBtn");
+
+  // ---- DOM refs: settings modal (BYOK API keys) --------------------------
+  const settingsBtn = document.getElementById("settingsBtn");
+  const settingsModal = document.getElementById("settingsModal");
+  const settingsCloseBtn = document.getElementById("settingsCloseBtn");
+  const settingsMessage = document.getElementById("settingsMessage");
+  const BYOK_FIELDS = {
+    openai: {
+      input: document.getElementById("openaiKeyInput"),
+      saveBtn: document.getElementById("openaiKeySaveBtn"),
+      removeBtn: document.getElementById("openaiKeyRemoveBtn"),
+      status: document.getElementById("openaiKeyStatus"),
+    },
+    claude: {
+      input: document.getElementById("claudeKeyInput"),
+      saveBtn: document.getElementById("claudeKeySaveBtn"),
+      removeBtn: document.getElementById("claudeKeyRemoveBtn"),
+      status: document.getElementById("claudeKeyStatus"),
+    },
+  };
 
   // ---- DOM refs: main app -----------------------------------------------
   const promptEl = document.getElementById("prompt");
@@ -521,6 +600,154 @@
   });
 
   logoutBtn.addEventListener("click", () => logout());
+
+  // ======================================================================
+  // Settings modal — BYOK (Bring Your Own Key) for OpenAI / Claude
+  // ======================================================================
+  function showSettingsMessage(message, tone) {
+    settingsMessage.textContent = message;
+    settingsMessage.className =
+      "mt-5 text-xs rounded-lg px-3 py-2 leading-relaxed " +
+      (tone === "error"
+        ? "text-red-300 bg-red-500/10 border border-red-500/30"
+        : "text-emerald-300 bg-emerald-500/10 border border-emerald-500/30");
+  }
+
+  function hideSettingsMessage() {
+    settingsMessage.classList.add("hidden");
+  }
+
+  function applyKeyStatus(provider, statusEntry) {
+    const fields = BYOK_FIELDS[provider];
+    if (!fields) return;
+
+    fields.input.value = "";
+    if (statusEntry && statusEntry.configured) {
+      fields.input.placeholder = statusEntry.masked_key || "••••••••";
+      fields.status.textContent = "Kayıtlı";
+      fields.status.className = "text-[11px] font-mono text-emerald-400";
+      fields.removeBtn.classList.remove("hidden");
+    } else {
+      fields.input.placeholder = provider === "openai" ? "sk-..." : "sk-ant-...";
+      fields.status.textContent = "Kayıtlı değil";
+      fields.status.className = "text-[11px] font-mono text-slate-600";
+      fields.removeBtn.classList.add("hidden");
+    }
+  }
+
+  async function fetchApiKeyStatuses() {
+    try {
+      const res = await fetch(API_KEYS_ENDPOINT, { headers: { ...authHeaders() } });
+      if (res.status === 401) {
+        logout("Oturumunuz sona erdi. Lütfen tekrar giriş yapın.");
+        return;
+      }
+      if (!res.ok) return;
+      const statuses = await res.json();
+      statuses.forEach((entry) => applyKeyStatus(entry.provider, entry));
+    } catch {
+      /* network hiccup — modal just shows the default "not saved" state */
+    }
+  }
+
+  function openSettingsModal() {
+    hideSettingsMessage();
+    settingsModal.classList.remove("hidden");
+    fetchApiKeyStatuses();
+  }
+
+  function closeSettingsModal() {
+    settingsModal.classList.add("hidden");
+  }
+
+  async function saveApiKey(provider) {
+    const fields = BYOK_FIELDS[provider];
+    const value = fields.input.value.trim();
+    if (!value) {
+      showSettingsMessage("Lütfen önce bir anahtar girin.", "error");
+      return;
+    }
+
+    fields.saveBtn.disabled = true;
+    hideSettingsMessage();
+    try {
+      const res = await fetch(`${API_KEYS_ENDPOINT}/${provider}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json", ...authHeaders() },
+        body: JSON.stringify({ api_key: value }),
+      });
+
+      if (res.status === 401) {
+        logout("Oturumunuz sona erdi. Lütfen tekrar giriş yapın.");
+        return;
+      }
+
+      let json;
+      try {
+        json = await res.json();
+      } catch {
+        json = null;
+      }
+
+      if (!res.ok) {
+        const detail = json?.detail;
+        const message = Array.isArray(detail) ? detail.map((d) => d.msg).join(", ") : detail || `HTTP ${res.status}`;
+        throw new Error(message);
+      }
+
+      applyKeyStatus(provider, json);
+      showSettingsMessage(`${provider === "openai" ? "OpenAI" : "Claude"} anahtarı kaydedildi.`, "ok");
+    } catch (err) {
+      const isNetworkError = err instanceof TypeError;
+      showSettingsMessage(isNetworkError ? `Sunucuya ulaşılamadı.` : err.message, "error");
+    } finally {
+      fields.saveBtn.disabled = false;
+    }
+  }
+
+  async function removeApiKey(provider) {
+    const fields = BYOK_FIELDS[provider];
+    fields.removeBtn.disabled = true;
+    hideSettingsMessage();
+    try {
+      const res = await fetch(`${API_KEYS_ENDPOINT}/${provider}`, {
+        method: "DELETE",
+        headers: { ...authHeaders() },
+      });
+
+      if (res.status === 401) {
+        logout("Oturumunuz sona erdi. Lütfen tekrar giriş yapın.");
+        return;
+      }
+      if (!res.ok && res.status !== 204) {
+        throw new Error(`HTTP ${res.status}`);
+      }
+
+      applyKeyStatus(provider, { configured: false });
+      showSettingsMessage(`${provider === "openai" ? "OpenAI" : "Claude"} anahtarı kaldırıldı.`, "ok");
+    } catch (err) {
+      showSettingsMessage(err.message || "Anahtar kaldırılamadı.", "error");
+    } finally {
+      fields.removeBtn.disabled = false;
+    }
+  }
+
+  settingsBtn.addEventListener("click", openSettingsModal);
+  settingsCloseBtn.addEventListener("click", closeSettingsModal);
+  settingsModal.addEventListener("click", (e) => {
+    if (e.target === settingsModal) closeSettingsModal(); // click on the backdrop
+  });
+  document.addEventListener("keydown", (e) => {
+    if (e.key === "Escape" && !settingsModal.classList.contains("hidden")) closeSettingsModal();
+  });
+
+  Object.entries(BYOK_FIELDS).forEach(([provider, fields]) => {
+    fields.saveBtn.addEventListener("click", () => saveApiKey(provider));
+    fields.removeBtn.addEventListener("click", () => removeApiKey(provider));
+    fields.input.addEventListener("keydown", (e) => {
+      if (e.key === "Enter") saveApiKey(provider);
+    });
+  });
 
   // ======================================================================
   // Result rendering (shared by fresh runs and history clicks)
